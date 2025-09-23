@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>HSC Chemistry – Equation Typer (with Isotopes)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+:root { --bg:#f8fafc; --card:#ffffff; --ink:#111827; --muted:#6b7280; --brand:#2563eb; }
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,'Noto Sans',sans-serif;margin:0;background:var(--bg);color:var(--ink)}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:var(--brand);color:white}
+header h1{font-size:18px;margin:0}
+#status{font-size:12px;opacity:.9}
+main{max-width:980px;margin:18px auto;padding:0 12px 24px}
+.panel{background:var(--card);border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:12px}
+.panel .head{padding:10px 12px;border-bottom:1px solid #e5e7eb;font-weight:600}
+.panel .body{padding:12px}
+math-field, textarea{width:100%;min-height:110px;font-size:20px;padding:10px;border:1px solid #d1d5db;border-radius:10px;background:#fff}
+#preview{padding:16px;min-height:70px;background:#fff}
+.row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+.btn{padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;background:white;cursor:pointer}
+.btn:active{transform:translateY(1px)}
+#keyboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+.key{display:flex;align-items:center;justify-content:center;min-height:64px;padding:8px;background:#fff;border:1px solid #cbd5e1;border-radius:12px;cursor:pointer}
+.key mjx-container{font-size:24px;max-width:100%}
+.hint{font-size:12px;color:var(--muted);margin-top:4px}
+math-field::part(virtual-keyboard-toggle), math-field::part(menu-toggle), math-field::part(toolbar){ display:none !important; }
+details#testsPanel{margin-top:8px}
+</style>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$', '$'], ['$$', '$$']], macros: { placeholder: '\\square' } },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" defer></script>
+<link rel="stylesheet" href="https://unpkg.com/mathlive/dist/mathlive.core.css">
+<link rel="stylesheet" href="https://unpkg.com/mathlive/dist/mathlive.css">
+</head>
+<body>
+<header>
+  <h1>HSC Chemistry – Equation Typer</h1>
+  <div id="status">Loading…</div>
+</header>
+<main>
+  <div class="panel">
+    <div class="head">Rendered Input (Editable)</div>
+    <div class="body">
+      <math-field id="mf" smart-fence letter-shape-style="tex" virtual-keyboard-mode="off" tabindex="0" placeholder="Type here…"></math-field>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="head">Raw LaTeX (Editable)</div>
+    <div class="body">
+      <div class="row">
+        <textarea id="ta" placeholder="Type or paste LaTeX here…"></textarea>
+        <button id="copyLatex" class="btn">Copy LaTeX</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="head">Word Equation</div>
+    <div class="body">
+      <div class="row">
+        <textarea id="wordOut" placeholder="Word equation output…" readonly></textarea>
+        <button id="copyWordBtn" class="btn">Copy Word Equation</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="head">Preview</div>
+    <div id="preview"></div>
+    <details id="testsPanel"><summary>Diagnostics / Tests</summary><pre id="tests" style="white-space:pre-wrap"></pre></details>
+  </div>
+
+  <div class="panel">
+    <div class="head">Chemistry Keys</div>
+    <div class="body" id="keyboard"></div>
+    <div class="hint" style="padding:0 12px 12px">State buttons auto-wrap the entire species (with charge and nested groups, skipping coefficients) into braces, then add the state outside: e.g. <code>Fe2(SO4)3^{2-}</code> + (aq) → <code>{Fe2(SO4)3^{2-}}_{(aq)}</code>. Backspace removes a whole state in one press. Spacebar types a thin space (LaTeX <code>\:</code>).</div>
+  </div>
+</main>
+
+<script>
+const mathField = document.getElementById('mf');
+const textArea = document.getElementById('ta');
+const wordOutput = document.getElementById('wordOut');
+const previewDiv = document.getElementById('preview');
+const statusDiv = document.getElementById('status');
+const testsDiv = document.getElementById('tests');
+
+function typesetMath(){ if(window.MathJax) window.MathJax.typesetPromise([previewDiv]); }
+
+function toWordEquation(latex) {
+  let w = latex;
+
+  // 1) Arrows
+  w = w.replace(/\xrightarrow\{([^}]*)\}/g, '\buildrel $1 \over \longlongrightarrow');
+
+  // 2) Thin space to real space
+  w = w.replace(/\:/g, ' ');
+
+  // 3) Isotope conversion ONLY
+  // Base X allowed: element symbol [A-Z][a-z]?, or {…}, or \placeholder{…}
+  const EL = '(?:[A-Z][a-z]?|\\{[^}]*\\}|\\\\placeholder\\{[^}]*\\})';
+
+    // a) ^{A}_{Z}X OR ^{A}_Z X  →  {_{ {Z} }^{ {A} }}X
+    w = w.replace(
+    new RegExp('\\^\\{\\s*([^}]*)\\s*\\}_(?:\\{\\s*([^}]*)\\s*\\}|\\s*([^\\s]+))\\s*(' + EL + ')', 'g'),
+    (m, A, Z1, Z2, X) => `{_{ {${Z1 || Z2}} }^{ {${A}} }}${X}`
+    );
+
+    // b) _{Z}^{A}X OR _Z^{A}X  →  {_{ {Z} }^{ {A} }}X
+    w = w.replace(
+    new RegExp('_(?:\\{\\s*([^}]*)\\s*\\}|\\s*([^\\s]+))\\s*\\^\\{\\s*([^}]*)\\s*\\}\\s*(' + EL + ')', 'g'),
+    (m, Z1, Z2, A, X) => `{_{ {${Z1 || Z2}} }^{ {${A}} }}${X}`
+    );
+
+
+
+  // 4) Greek shortcuts → Unicode
+  w = w.replace(/\\alpha/g, 'α');
+  w = w.replace(/\\beta/g, 'β');
+  w = w.replace(/\\gamma/g, 'γ');
+
+  // 5) Placeholders marker
+  w = w.replace(/\\placeholder\{[^}]*\}/g, '[placeholder]');
+
+  return w;
+}
+
+function syncFromMath(){
+  const val = mathField.getValue('latex') || '';
+  textArea.value = val;
+  wordOutput.value = toWordEquation(val);
+  previewDiv.innerHTML = '$$' + val + '$$';
+  typesetMath();
+}
+
+function syncFromText(){
+  const val = textArea.value;
+  wordOutput.value = toWordEquation(val);
+  previewDiv.innerHTML = '$$' + val + '$$';
+  typesetMath();
+  mathField.setValue(val);
+}
+
+// Fixed regex to match the actual state format: _{(state)}
+const stateRegex = /_\{\((?:s|l|g|aq)\)\}$/;
+
+function setupMathField(){
+  mathField.setOptions({virtualKeyboardMode:'off',inlineShortcuts:{},overrideDefaultInlineShortcuts:true});
+  mathField.addEventListener('input', syncFromMath);
+  textArea.addEventListener('input', syncFromText);
+
+  mathField.addEventListener('keydown', (e)=>{
+    if(e.key === ' '){ e.preventDefault(); insertText(' \\: '); return; }
+    if(e.key !== 'Backspace') return;
+    const latex = mathField.getValue('latex') || '';
+    if(stateRegex.test(latex)){
+      e.preventDefault();
+      mathField.setValue(latex.replace(stateRegex, ''));
+      syncFromMath();
+    }
+  });
+
+  textArea.addEventListener('keydown', (e)=>{
+    if(e.key !== 'Backspace') return;
+    const v = textArea.value || '';
+    if(stateRegex.test(v)){
+      e.preventDefault();
+      const result = v.replace(stateRegex, '');
+      textArea.value = result;
+      textArea.setSelectionRange(result.length, result.length);
+      syncFromText();
+    }
+  });
+
+  mathField.focus();
+  syncFromMath();
+}
+
+// Fixed regex to match the actual state format
+function stripState(text){
+  const match = text.match(/^(.*)_\{\((?:s|l|g|aq)\)\}$/);
+  return match ? match[1] : text;
+}
+
+function findSpeciesStart(latex, position){
+  let i = position - 1;
+  while(i >= 0 && /\s/.test(latex[i])) i--;
+  let start = i + 1;
+  const isBoundary = (ch, prev) => {
+    if(!ch) return true;
+    if(/[\s+=><]/.test(ch)) return true; // minus is special-cased below
+    if(ch === '·' || ch === '\\') return true;
+    if(ch === '-' && prev !== '^') return true;
+    return false;
+  };
+  function scanBalanced(close, open){
+    let depth = 0, k = i;
+    for(; k >= 0; k--){
+      const c = latex[k];
+      if(c === close) depth++;
+      else if(c === open){
+        depth--;
+        if(depth === 0) break;
+      }
+    }
+    return k;
+  }
+  while(i >= 0){
+    const c = latex[i], prev = latex[i-1];
+    if(c === '}'){
+      const k = scanBalanced('}', '{');
+      if(k < 0) break;
+      start = k; i = k - 1;
+      if(latex[i] === '^' || latex[i] === '_'){ start = i; i--; continue; }
+      continue;
+    }
+    if(c === ')'){
+      const k = scanBalanced(')', '(');
+      if(k < 0) break;
+      start = k; i = k - 1; continue;
+    }
+    if(/[a-z]/.test(c)){
+      let k = i; while(k >= 0 && /[a-z]/.test(latex[k])) k--;
+      if(k >= 0 && /[A-Z]/.test(latex[k])){ start = k; i = k - 1; continue; }
+      start = k + 1; i = k; continue;
+    }
+    if(/[A-Z]/.test(c)){ start = i; i--; continue; }
+    if(/[0-9]/.test(c)){
+      let k = i; while(k >= 0 && /[0-9]/.test(latex[k])) k--;
+      const before = latex[k];
+      if(before && /[a-zA-Z)}]/.test(before)){ start = k + 1; i = k; continue; }
+      break;
+    }
+    if(isBoundary(c, prev)) break;
+    start = i; i--;
+  }
+  return Math.max(0, start);
+}
+
+function applyStateToText(latex, position, state){
+  const left = stripState(latex.slice(0, position));
+  const right = latex.slice(position);
+  const base = left + right;
+  const newPos = left.length;
+  const start = findSpeciesStart(base, newPos);
+  const species = base.slice(start, newPos);
+  const result = base.slice(0, start) + '{' + species + '}_{(' + state + ')}' + base.slice(newPos);
+  return { result, position: (base.slice(0, start) + '{' + species + '}_{(' + state + ')}').length };
+}
+
+function applyState(state){
+  let latex = mathField.getValue('latex') || '';
+  const position = latex.length;
+  const { result } = applyStateToText(latex, position, state);
+  mathField.setValue(result);
+  syncFromMath();
+}
+
+function insertText(text){ mathField.insert(text); syncFromMath(); }
+
+const chemKeys = [
+  { display: '\\rightarrow', insert: ' \\rightarrow ' },
+  { display: '\\rightleftharpoons', insert: ' \\rightleftharpoons ' },
+  { display: '\\xrightarrow{\\Delta}', insert: ' \\xrightarrow{\\Delta} ' },
+  { display: '\\xrightarrow{\\placeholder{}}', insert: ' \\xrightarrow{\\placeholder{}} ' },
+  { display: '^{\\placeholder{}}_{\\placeholder{}}\\placeholder{}', insert: '^{\\placeholder{}}_{\\placeholder{}}\\placeholder{}' },
+  { display: '\\alpha', insert: '\\alpha' },
+  { display: '\\beta', insert: '\\beta' },
+  { display: '\\gamma', insert: '\\gamma' },
+  { display: '(s)', action: () => applyState('s') },
+  { display: '(l)', action: () => applyState('l') },
+  { display: '(g)', action: () => applyState('g') },
+  { display: '(aq)', action: () => applyState('aq') }
+];
+
+function buildKeys(){
+  const container = document.getElementById('keyboard');
+  container.innerHTML = '';
+  chemKeys.forEach(key => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'key';
+    button.innerHTML = '$$' + key.display + '$$';
+    button.addEventListener('click', () => { if(key.action) key.action(); else insertText(key.insert); });
+    container.appendChild(button);
+  });
+  if(window.MathJax) window.MathJax.typesetPromise([container]);
+}
+
+function runTests(){
+  const cases = [
+    { name:'isotope compact Z', input:'_6^{12}X', convert:true, expected:'{_{6}^{12}}X' },
+    { name:'isotope reversed order', input:'^{14}_{6}C', convert:true, expected:'{_{6}^{14}}C' },
+    { name:'isotope with braces base', input:'^{14}_{6}{Na}', convert:true, expected:'{_{6}^{14}}{Na}' },
+    { name:'isotope placeholders', input:'^{\\placeholder{}}_{\\placeholder{}}\\placeholder{}', convert:true, expected:'{_[placeholder]^[placeholder]}[placeholder]' },
+    { name:'alpha conversion', input:'\\alpha', convert:true, expected:'α' },
+    { name:'beta conversion', input:'\\beta', convert:true, expected:'β' },
+    { name:'gamma conversion', input:'\\gamma', convert:true, expected:'γ' },
+    { name:'apply state', input:'Fe_{3}^{2+}', state:'aq', expected:'{Fe_{3}^{2+}}_{(aq)}' }
+  ];
+
+  const results = [];
+  for(const testCase of cases){
+    let output;
+    if(testCase.convert){
+      output = toWordEquation(testCase.input);
+      results.push(((output === testCase.expected) ? 'PASS' : 'FAIL') + ` - ${testCase.name}\n input: ${testCase.input}\n got: ${output}\n want: ${testCase.expected}\n`);
+    } else {
+      const { result } = applyStateToText(testCase.input, testCase.input.length, testCase.state);
+      results.push(((result === testCase.expected) ? 'PASS' : 'FAIL') + ` - ${testCase.name}\n input: ${testCase.input}\n got: ${result}\n want: ${testCase.expected}\n`);
+    }
+  }
+  testsDiv.textContent = results.join('\n');
+}
+
+(async()=>{
+  const urls = ['https://cdn.jsdelivr.net/npm/mathlive/dist/mathlive.min.js','https://unpkg.com/mathlive/dist/mathlive.min.js'];
+  for(const url of urls){
+    try{
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = url; script.defer = true; script.onload = resolve; script.onerror = reject;
+        document.head.appendChild(script);
+      });
+      break;
+    }catch(e){}
+  }
+  if(window.customElements && window.customElements.whenDefined) await customElements.whenDefined('math-field');
+  setupMathField();
+  buildKeys();
+  statusDiv.textContent = 'Ready';
+  runTests();
+})();
+
+document.getElementById('copyLatex').onclick = async () => {
+  try {
+    await navigator.clipboard.writeText(textArea.value);
+  } catch (e) {
+    console.error('Failed to copy LaTeX:', e);
+  }
+};
+
+document.getElementById('copyWordBtn').onclick = async () => {
+  try {
+    await navigator.clipboard.writeText(wordOutput.value);
+  } catch (e) {
+    console.error('Failed to copy Word Equation:', e);
+  }
+};
+</script>
+</body>
+</html>
