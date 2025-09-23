@@ -10,7 +10,7 @@ A simple web app for **HSC students and teachers** to type and convert chemistry
 - Type chemistry equations in LaTeX using a live math editor.  
 - Correct isotope formatting: e.g. `^{14}_{6}C` → `{_{6}^{14}}C`.  
 - Direct copy-paste into Word and Notion without losing formatting.  
-- Export to Google Docs (with [Auto-LaTeX Equations](https://workspace.google.com/marketplace/app/auto_latex_equations/), or similar add-ons).  
+- Export to Google Docs (with [Auto-LaTeX Equations](https://workspace.google.com/marketplace/app/autolatex_equations/850293439076), or similar add-ons).  
 
 ---
 
