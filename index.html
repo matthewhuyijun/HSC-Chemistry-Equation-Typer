@@ -1,31 +1,67 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8" />
 <title>HSC Chemistry – Equation Typer (with Isotopes)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
-:root { --bg:#f8fafc; --card:#ffffff; --ink:#111827; --muted:#6b7280; --brand:#2563eb; }
+:root {
+  color-scheme: light;
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-alt: #e2e8f0;
+  --color-ink: #0f172a;
+  --color-muted: #64748b;
+  --color-border: #d1d5db;
+  --color-border-strong: #cbd5e1;
+  --color-brand: #2563eb;
+  --color-header-text: #ffffff;
+  --color-button-bg: #ffffff;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #0f172a;
+  --color-surface: #111827;
+  --color-surface-alt: #1f2937;
+  --color-ink: #e2e8f0;
+  --color-muted: #94a3b8;
+  --color-border: #334155;
+  --color-border-strong: #1f2937;
+  --color-brand: #2563eb;
+  --color-header-text: #e2e8f0;
+  --color-button-bg: #1e293b;
+}
+
 *{box-sizing:border-box}
-body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,'Noto Sans',sans-serif;margin:0;background:var(--bg);color:var(--ink)}
-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:var(--brand);color:white}
-header h1{font-size:18px;margin:0}
-#status{font-size:12px;opacity:.9}
-main{max-width:980px;margin:18px auto;padding:0 12px 24px}
-.panel{background:var(--card);border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:12px}
-.panel .head{padding:10px 12px;border-bottom:1px solid #e5e7eb;font-weight:600}
-.panel .body{padding:12px}
-math-field, textarea{width:100%;min-height:110px;font-size:20px;padding:10px;border:1px solid #d1d5db;border-radius:10px;background:#fff}
-#preview{padding:16px;min-height:70px;background:#fff}
-.row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
-.btn{padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;background:white;cursor:pointer}
-.btn:active{transform:translateY(1px)}
-#keyboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
-.key{display:flex;align-items:center;justify-content:center;min-height:64px;padding:8px;background:#fff;border:1px solid #cbd5e1;border-radius:12px;cursor:pointer}
-.key mjx-container{font-size:24px;max-width:100%}
-.hint{font-size:12px;color:var(--muted);margin-top:4px}
-math-field::part(virtual-keyboard-toggle), math-field::part(menu-toggle), math-field::part(toolbar){ display:none !important; }
-details#testsPanel{margin-top:8px}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,'Noto Sans',sans-serif;margin:0;background:var(--color-bg);color:var(--color-ink);transition:background-color .2s ease,color .2s ease;}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:var(--color-brand);color:var(--color-header-text);}
+header h1{font-size:18px;margin:0;}
+.header-controls{display:flex;align-items:center;gap:12px;font-size:12px;}
+#status{font-size:12px;}
+.theme-switcher{display:flex;align-items:center;gap:6px;}
+.theme-switcher span{font-weight:600;}
+.theme-switcher select{padding:2px 6px;font-size:12px;border-radius:6px;border:1px solid var(--color-border);background:var(--color-button-bg);color:var(--color-ink);}
+main{max-width:980px;margin:18px auto;padding:0 12px 24px;}
+.panel{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;overflow:hidden;margin-bottom:12px;box-shadow:0 1px 2px rgba(15,23,42,0.04);}
+.panel .head{padding:10px 12px;border-bottom:1px solid var(--color-border-strong);font-weight:600;}
+.panel .body{padding:12px;}
+math-field, textarea{width:100%;min-height:56px;font-size:18px;padding:8px 10px;border:1px solid var(--color-border);border-radius:10px;background:var(--color-surface-alt);color:var(--color-ink);transition:background-color .2s ease,color .2s ease,border-color .2s ease;}
+textarea[readonly]{background:var(--color-surface-alt);}
+math-field::part(content){color:var(--color-ink);}
+math-field::part(caret){border-left:2px solid var(--color-brand);}
+#preview{min-height:56px;padding:8px 10px;border:1px solid var(--color-border);border-radius:10px;background:var(--color-surface-alt);color:var(--color-ink);}
+.row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;}
+button{font-family:inherit;}
+.btn{padding:6px 10px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-button-bg);color:var(--color-ink);cursor:pointer;transition:background-color .2s ease,color .2s ease,border-color .2s ease;}
+.btn:active{transform:translateY(1px);}
+.btn:focus-visible,.theme-switcher select:focus-visible{outline:2px solid var(--color-brand);outline-offset:2px;}
+#keyboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;}
+.key{display:flex;align-items:center;justify-content:center;min-height:56px;padding:8px;background:var(--color-surface-alt);border:1px solid var(--color-border);border-radius:12px;cursor:pointer;color:var(--color-ink);transition:background-color .2s ease,color .2s ease,border-color .2s ease;}
+.key mjx-container{font-size:24px;max-width:100%;}
+.hint{font-size:12px;color:var(--color-muted);margin:0;padding:0 12px 12px;}
+math-field::part(virtual-keyboard-toggle), math-field::part(menu-toggle), math-field::part(toolbar){display:none!important;}
+@media (max-width:600px){.row{grid-template-columns:1fr;}.btn{width:100%;}}
 </style>
 <script>
   window.MathJax = {
@@ -40,18 +76,35 @@ details#testsPanel{margin-top:8px}
 <body>
 <header>
   <h1>HSC Chemistry – Equation Typer</h1>
-  <div id="status">Loading…</div>
+  <div class="header-controls">
+    <div id="status">Loading…</div>
+    <label class="theme-switcher">
+      <span>Theme</span>
+      <select id="themeMode" aria-label="Theme selection">
+        <option value="system">System</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </label>
+  </div>
 </header>
 <main>
   <div class="panel">
-    <div class="head">Rendered Input (Editable)</div>
+    <div class="head">Preview</div>
+    <div class="body">
+      <div id="preview"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="head">Rendered Input</div>
     <div class="body">
       <math-field id="mf" smart-fence letter-shape-style="tex" virtual-keyboard-mode="off" tabindex="0" placeholder="Type here…"></math-field>
     </div>
   </div>
 
   <div class="panel">
-    <div class="head">Raw LaTeX (Editable)</div>
+    <div class="head">Raw LaTeX</div>
     <div class="body">
       <div class="row">
         <textarea id="ta" placeholder="Type or paste LaTeX here…"></textarea>
@@ -71,15 +124,9 @@ details#testsPanel{margin-top:8px}
   </div>
 
   <div class="panel">
-    <div class="head">Preview</div>
-    <div id="preview"></div>
-    <details id="testsPanel"><summary>Diagnostics / Tests</summary><pre id="tests" style="white-space:pre-wrap"></pre></details>
-  </div>
-
-  <div class="panel">
     <div class="head">Chemistry Keys</div>
     <div class="body" id="keyboard"></div>
-    <div class="hint" style="padding:0 12px 12px">State buttons auto-wrap the entire species (with charge and nested groups, skipping coefficients) into braces, then add the state outside: e.g. <code>Fe2(SO4)3^{2-}</code> + (aq) → <code>{Fe2(SO4)3^{2-}}_{(aq)}</code>. Backspace removes a whole state in one press. Spacebar types a thin space (LaTeX <code>\:</code>).</div>
+    <p class="hint">State buttons auto-wrap the entire species (with charge and nested groups, skipping coefficients) into braces, then add the state outside: e.g. <code>Fe2(SO4)3^{2-}</code> + (aq) → <code>{Fe2(SO4)3^{2-}}_{(aq)}</code>. Backspace removes a whole state in one press. Spacebar types a thin space (LaTeX <code>\:</code>).</p>
   </div>
 </main>
 
@@ -89,7 +136,47 @@ const textArea = document.getElementById('ta');
 const wordOutput = document.getElementById('wordOut');
 const previewDiv = document.getElementById('preview');
 const statusDiv = document.getElementById('status');
-const testsDiv = document.getElementById('tests');
+const themeSelect = document.getElementById('themeMode');
+
+const THEME_STORAGE_KEY = 'theme-preference';
+const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+const themeStorage = {
+  get(){ try { return localStorage.getItem(THEME_STORAGE_KEY); } catch { return null; } },
+  set(value){ try { localStorage.setItem(THEME_STORAGE_KEY, value); } catch {} }
+};
+
+const resolveTheme = (choice) => choice === 'system' ? (prefersDarkScheme.matches ? 'dark' : 'light') : choice;
+function setDocumentTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
+}
+function applyTheme(choice){
+  const resolved = resolveTheme(choice);
+  setDocumentTheme(resolved);
+  if(themeSelect && themeSelect.value !== choice){
+    themeSelect.value = choice;
+  }
+}
+
+applyTheme(themeStorage.get() || 'system');
+if(themeSelect){
+  themeSelect.addEventListener('change', (event) => {
+    const selection = event.target.value;
+    applyTheme(selection);
+    themeStorage.set(selection);
+  });
+}
+const handleSystemThemeChange = () => {
+  const current = themeStorage.get() || 'system';
+  if(current === 'system'){
+    applyTheme('system');
+  }
+};
+if(typeof prefersDarkScheme.addEventListener === 'function'){
+  prefersDarkScheme.addEventListener('change', handleSystemThemeChange);
+} else if(typeof prefersDarkScheme.addListener === 'function'){
+  prefersDarkScheme.addListener(handleSystemThemeChange);
+}
 
 function typesetMath(){ if(window.MathJax) window.MathJax.typesetPromise([previewDiv]); }
 
@@ -293,32 +380,6 @@ function buildKeys(){
   if(window.MathJax) window.MathJax.typesetPromise([container]);
 }
 
-function runTests(){
-  const cases = [
-    { name:'isotope compact Z', input:'_6^{12}X', convert:true, expected:'{_{6}^{12}}X' },
-    { name:'isotope reversed order', input:'^{14}_{6}C', convert:true, expected:'{_{6}^{14}}C' },
-    { name:'isotope with braces base', input:'^{14}_{6}{Na}', convert:true, expected:'{_{6}^{14}}{Na}' },
-    { name:'isotope placeholders', input:'^{\\placeholder{}}_{\\placeholder{}}\\placeholder{}', convert:true, expected:'{_[placeholder]^[placeholder]}[placeholder]' },
-    { name:'alpha conversion', input:'\\alpha', convert:true, expected:'α' },
-    { name:'beta conversion', input:'\\beta', convert:true, expected:'β' },
-    { name:'gamma conversion', input:'\\gamma', convert:true, expected:'γ' },
-    { name:'apply state', input:'Fe_{3}^{2+}', state:'aq', expected:'{Fe_{3}^{2+}}_{(aq)}' }
-  ];
-
-  const results = [];
-  for(const testCase of cases){
-    let output;
-    if(testCase.convert){
-      output = toWordEquation(testCase.input);
-      results.push(((output === testCase.expected) ? 'PASS' : 'FAIL') + ` - ${testCase.name}\n input: ${testCase.input}\n got: ${output}\n want: ${testCase.expected}\n`);
-    } else {
-      const { result } = applyStateToText(testCase.input, testCase.input.length, testCase.state);
-      results.push(((result === testCase.expected) ? 'PASS' : 'FAIL') + ` - ${testCase.name}\n input: ${testCase.input}\n got: ${result}\n want: ${testCase.expected}\n`);
-    }
-  }
-  testsDiv.textContent = results.join('\n');
-}
-
 (async()=>{
   const urls = ['https://cdn.jsdelivr.net/npm/mathlive/dist/mathlive.min.js','https://unpkg.com/mathlive/dist/mathlive.min.js'];
   for(const url of urls){
@@ -335,7 +396,6 @@ function runTests(){
   setupMathField();
   buildKeys();
   statusDiv.textContent = 'Ready';
-  runTests();
 })();
 
 document.getElementById('copyLatex').onclick = async () => {
