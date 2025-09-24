@@ -15,6 +15,7 @@
   --brand-ink: #ffffff;
   --border: #e2e8f0;
   --key-bg: rgba(255, 255, 255, 0.9);
+  --scale: 1.1;
 }
 [data-theme="dark"] {
   color-scheme: dark;
@@ -36,45 +37,77 @@ body {
   background: var(--bg);
   color: var(--ink);
   transition: background 0.3s ease, color 0.3s ease;
+  font-size: calc(16px * var(--scale));
 }
 header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: calc(12px * var(--scale));
+  padding: calc(12px * var(--scale)) calc(16px * var(--scale));
   background: var(--brand);
 }
 header h1 {
-  font-size: 18px;
+  font-size: calc(18px * var(--scale));
   margin: 0;
   font-weight: 600;
   color: var(--brand-ink);
 }
+header .header-left {
+  display: flex;
+  align-items: center;
+  gap: calc(12px * var(--scale));
+  flex-wrap: wrap;
+}
+.header-actions {
+  display: flex;
+  gap: calc(12px * var(--scale));
+  flex-wrap: wrap;
+}
+.header-copy {
+  padding: calc(8px * var(--scale)) calc(16px * var(--scale));
+  border: none;
+  border-radius: calc(8px * var(--scale));
+  background: var(--brand-ink);
+  color: var(--brand);
+  font-size: calc(14px * var(--scale));
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 calc(6px * var(--scale)) calc(16px * var(--scale)) rgba(15, 23, 42, 0.25);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.header-copy:active {
+  transform: translateY(calc(1px * var(--scale)));
+  box-shadow: 0 calc(4px * var(--scale)) calc(10px * var(--scale)) rgba(15, 23, 42, 0.2);
+}
+.header-copy:focus-visible {
+  outline: calc(2px * var(--scale)) solid var(--brand-ink);
+  outline-offset: calc(2px * var(--scale));
+}
 .header-controls {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: calc(16px * var(--scale));
 }
 #status {
-  font-size: 12px;
+  font-size: calc(12px * var(--scale));
   opacity: 0.9;
   color: var(--brand-ink);
 }
 .theme-switcher {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: calc(6px * var(--scale));
+  font-size: calc(12px * var(--scale));
   color: var(--brand-ink);
 }
 .theme-switcher select {
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: calc(2px * var(--scale)) calc(8px * var(--scale));
+  border-radius: calc(6px * var(--scale));
   border: 1px solid rgba(255, 255, 255, 0.5);
   background: var(--brand-ink);
   color: var(--brand);
-  font-size: 12px;
+  font-size: calc(12px * var(--scale));
 }
 [data-theme="dark"] .theme-switcher select {
   background: var(--brand);
@@ -82,118 +115,119 @@ header h1 {
   border-color: rgba(255, 255, 255, 0.4);
 }
 main {
-  width: min(960px, 90vw);
-  margin: 18px auto;
-  padding: 0 12px 24px;
+  width: min(calc(960px * var(--scale)), 90vw);
+  margin: calc(18px * var(--scale)) auto;
+  padding: 0 calc(12px * var(--scale)) calc(24px * var(--scale));
   display: grid;
-  gap: 12px;
+  gap: calc(12px * var(--scale));
 }
 .panel,
 .card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: calc(12px * var(--scale));
   overflow: hidden;
   box-shadow: 0 1px 1px rgba(15, 23, 42, 0.06);
 }
 .panel .head {
-  padding: 10px 12px;
+  padding: calc(10px * var(--scale)) calc(12px * var(--scale));
   border-bottom: 1px solid var(--border);
   font-weight: 600;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   color: var(--ink);
+  text-align: center;
 }
 .panel .body,
 .card .body {
-  padding: 12px;
+  padding: calc(12px * var(--scale));
 }
 math-field,
 textarea {
-  font-size: 18px;
-  padding: 10px;
+  font-size: calc(18px * var(--scale));
+  padding: calc(10px * var(--scale));
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: calc(10px * var(--scale));
   background: var(--card);
   color: var(--ink);
   width: 100%;
   transition: border-color 0.2s ease, background 0.2s ease;
 }
 math-field {
-  min-height: 52px;
+  min-height: calc(52px * var(--scale));
 }
 textarea {
-  min-height: 52px;
-  resize: vertical;
+  min-height: calc(52px * var(--scale));
+  resize: none;
 }
 #ta {
-  min-height: 52px;
+  min-height: calc(52px * var(--scale));
 }
 .preview-card .body {
   padding: 0;
 }
 #preview {
-  min-height: 52px;
-  padding: 16px;
+  min-height: calc(52px * var(--scale));
+  padding: calc(16px * var(--scale));
 }
 .row {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 10px;
+  gap: calc(10px * var(--scale));
   align-items: center;
 }
 .btn,
 .copyBtn {
-  padding: 4px 8px;
+  padding: calc(4px * var(--scale)) calc(8px * var(--scale));
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: calc(6px * var(--scale));
   background: var(--card);
   cursor: pointer;
-  font-size: 12px;
+  font-size: calc(12px * var(--scale));
   color: var(--ink);
 }
 .btn:active {
-  transform: translateY(1px);
+  transform: translateY(calc(1px * var(--scale)));
 }
 .btn:focus-visible {
-  outline: 2px solid var(--brand);
-  outline-offset: 2px;
+  outline: calc(2px * var(--scale)) solid var(--brand);
+  outline-offset: calc(2px * var(--scale));
 }
 #keyboard {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-start;
+  gap: calc(8px * var(--scale));
+  justify-content: center;
 }
 .key {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 48px;
-  padding: 6px 12px;
+  min-height: calc(48px * var(--scale));
+  padding: calc(6px * var(--scale)) calc(12px * var(--scale));
   background: var(--key-bg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: calc(10px * var(--scale));
   cursor: pointer;
-  font-size: 18px;
+  font-size: calc(18px * var(--scale));
   flex: 0 0 auto;
   color: var(--ink);
 }
 .key mjx-container {
-  font-size: 20px;
+  font-size: calc(20px * var(--scale));
   max-width: 100%;
 }
-.hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.hint { font-size: calc(12px * var(--scale)); color: var(--muted); margin-top: calc(4px * var(--scale)); }
 .editor {
   display: grid;
-  gap: 6px;
+  gap: calc(6px * var(--scale));
 }
 .editor label {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: calc(8px * var(--scale));
+  font-size: calc(13px * var(--scale));
   color: var(--muted);
 }
 .editor label strong {
@@ -205,7 +239,7 @@ textarea {
 }
 .stack {
   display: grid;
-  gap: 16px;
+  gap: calc(16px * var(--scale));
 }
 math-field::part(virtual-keyboard-toggle),
 math-field::part(menu-toggle),
@@ -246,7 +280,13 @@ math-field::part(toolbar) {
 </head>
 <body>
 <header>
-  <h1>HSC Chemistry – Equation Typer</h1>
+  <div class="header-left">
+    <h1>HSC Chemistry – Equation Typer</h1>
+    <div class="header-actions">
+      <button type="button" class="header-copy" id="headerCopyLatex">Copy LaTeX</button>
+      <button type="button" class="header-copy" id="headerCopyWord">Copy Word Equation</button>
+    </div>
+  </div>
   <div class="header-controls">
     <div id="status">Loading…</div>
     <label class="theme-switcher">
@@ -345,7 +385,15 @@ const wordOutput = document.getElementById('wordOut');
 const previewDiv = document.getElementById('preview');
 const statusDiv = document.getElementById('status');
 
-function typesetMath(){ if(window.MathJax) window.MathJax.typesetPromise([previewDiv]); }
+function typesetMath(){ 
+  if(window.MathJax) {
+    try {
+      window.MathJax.typesetPromise([previewDiv]);
+    } catch(e) {
+      console.warn('MathJax typeset failed', e);
+    }
+  }
+}
 
 function toWordEquation(latex) {
   let w = latex;
@@ -354,7 +402,7 @@ function toWordEquation(latex) {
   w = w.replace(/\xrightarrow\{([^}]*)\}/g, '\buildrel $1 \over \longlongrightarrow');
 
   // 2) Thin space to real space
-  w = w.replace(/\:/g, ' ');
+  w = w.replace(/\\:/g, ' ');
 
   // 3) Isotope conversion ONLY
   // Base X allowed: element symbol [A-Z][a-z]?, or {…}, or \placeholder{…}
@@ -530,7 +578,8 @@ const chemKeys = [
   { display: '^{\\placeholder{}}_{\\placeholder{}}\\placeholder{}', insert: '^{\\placeholder{}}_{\\placeholder{}}\\placeholder{}' },
   { display: '\\alpha', insert: '\\alpha' },
   { display: '\\beta', insert: '\\beta' },
-  { display: '\\gamma', insert: '\\gamma' }
+  { display: '\\gamma', insert: '\\gamma' },
+  { display: '\\overline{\\beta}\\:', insert: '\\overline{\\beta}\\:' }
 ];
 
 function buildKeys(){
@@ -549,20 +598,45 @@ function buildKeys(){
 
 (async()=>{
   const urls = ['https://cdn.jsdelivr.net/npm/mathlive/dist/mathlive.min.js','https://unpkg.com/mathlive/dist/mathlive.min.js'];
+  let mathLiveLoaded = false;
+  
   for(const url of urls){
     try{
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = url; script.defer = true; script.onload = resolve; script.onerror = reject;
+        script.src = url; 
+        script.defer = true; 
+        script.onload = () => {
+          mathLiveLoaded = true;
+          resolve();
+        }; 
+        script.onerror = reject;
         document.head.appendChild(script);
       });
       break;
-    }catch(e){}
+    }catch(e){
+      console.warn('Failed to load MathLive from', url, e);
+    }
   }
-  if(window.customElements && window.customElements.whenDefined) await customElements.whenDefined('math-field');
+  
+  // Wait for MathLive to be defined
+  if(window.customElements && window.customElements.whenDefined) {
+    try {
+      await customElements.whenDefined('math-field');
+    } catch(e) {
+      console.warn('MathLive custom element not defined', e);
+    }
+  }
+  
+  // Setup regardless of MathLive status
   setupMathField();
   buildKeys();
-  statusDiv.textContent = 'Ready';
+  
+  if(mathLiveLoaded && window.MathfieldElement) {
+    statusDiv.textContent = 'Ready';
+  } else {
+    statusDiv.textContent = 'Fallback mode - MathLive not available';
+  }
 })();
 
 document.getElementById('copyLatex').onclick = async () => {
@@ -580,6 +654,22 @@ document.getElementById('copyWordBtn').onclick = async () => {
     console.error('Failed to copy Word Equation:', e);
   }
 };
+
+document.getElementById('headerCopyLatex').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(textArea.value);
+  } catch (e) {
+    console.error('Failed to copy LaTeX:', e);
+  }
+});
+
+document.getElementById('headerCopyWord').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(wordOutput.value);
+  } catch (e) {
+    console.error('Failed to copy Word Equation:', e);
+  }
+});
 </script>
 </body>
 </html>
