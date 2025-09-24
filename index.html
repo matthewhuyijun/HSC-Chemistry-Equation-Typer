@@ -286,10 +286,10 @@ textarea {
 .header-copy:hover,
 .copyBtn:focus-visible,
 .header-copy:focus-visible {
-  background: var(--copy-hover-bg);
-  color: var(--copy-hover-ink);
-  border-color: var(--copy-hover-border);
-  box-shadow: 0 calc(4px * var(--scale)) calc(14px * var(--scale)) rgba(15, 23, 42, 0.2);
+  background: color-mix(in srgb, var(--brand) 25%, var(--copy-bg));
+  border-color: var(--brand);
+  box-shadow: 0 calc(4px * var(--scale)) calc(14px * var(--scale)) rgba(37, 99, 235, 0.25);
+  transform: translateY(calc(-1px * var(--scale)));
 }
 .copyBtn:focus-visible,
 .header-copy:focus-visible {
@@ -298,7 +298,6 @@ textarea {
 }
 .copyBtn:active,
 .header-copy:active {
-  transform: translateY(calc(1px * var(--scale)));
   box-shadow: 0 calc(2px * var(--scale)) calc(8px * var(--scale)) rgba(15, 23, 42, 0.25);
 }
 #keyboard {
@@ -328,10 +327,10 @@ textarea {
 }
 .key:hover,
 .key:focus-visible {
-  background: var(--copy-hover-bg);
-  border-color: var(--copy-hover-border);
-  color: var(--copy-hover-ink);
-  box-shadow: 0 calc(4px * var(--scale)) calc(14px * var(--scale)) rgba(37, 99, 235, 0.3);
+  background: color-mix(in srgb, var(--brand) 25%, var(--key-bg));
+  border-color: var(--brand);
+  box-shadow: 0 calc(4px * var(--scale)) calc(14px * var(--scale)) rgba(37, 99, 235, 0.30);
+  transform: translateY(calc(-1px * var(--scale)));
 }
 .key:active {
   transform: translateY(calc(1px * var(--scale)));
@@ -762,38 +761,60 @@ function typesetMath(){
 }
 
 function toWordEquation(latex) {
-  let w = latex;
+  let w = String(latex ?? '');
 
-  // 1) Arrows
-  w = w.replace(/\xrightarrow\{([^}]*)\}/g, '\buildrel $1 \over \longlongrightarrow');
-
-  // 2) Thin space to real space
+  // Arrows
+  w = w.replace(/\xrightarrow\s*\{\s*([\s\S]*?)\s*\}/g, (match, rawLabel) => {
+    const label = (rawLabel || '').trim();
+    if (!label) {
+      return '\\longrightarrow';
+    }
+    const hasPlaceholder = /\\placeholder/.test(label);
+    const startsWithCommand = /^\\[A-Za-z]/.test(label);
+    if (hasPlaceholder || startsWithCommand) {
+      return `\\buildrel${label}\\over\\longrightarrow`;
+    }
+    return `\\buildrel\\ ${label}\\over\\longrightarrow`;
+  });
+  w = w.replace(/\\\\buildrel/g, '\\buildrel');
+  // Thin spaces become real spaces for Word
   w = w.replace(/\\:/g, ' ');
+  // Differential adjustments
+  w = w.replace(/\\differentialD\s?/g, 'd');
+  w = w.replace(/d\\theta/g, 'd{\\theta}');
+  w = w.replace(/d\\mu/g, 'd{\\mu}');
+  // Logical implication arrow
+  w = w.replace(/\\implies/g, '\Longrightarrow');
+  // Absolute value to scalable delimiters
+  w = w.replace(/\\lvert([\s\S]*?)\\rvert/g, '\left|$1\right|');
+  // Matrix environment for Word equation editor
+  w = w.replace(/\\begin\{pmatrix\}([\s\S]*?)\\end\{pmatrix\}/g, (match, inside) => {
+    const content = inside.trim().replace(/\\*$/, '') + '\\';
+    return '\\left(\\begin{matrix}' + content + '\\end{matrix}\\right)';
+  });
 
-  // 3) Isotope conversion ONLY
+  // Isotope conversion ONLY
   // Base X allowed: element symbol [A-Z][a-z]?, or {…}, or \placeholder{…}
   const EL = '(?:[A-Z][a-z]?|\\{[^}]*\\}|\\\\placeholder\\{[^}]*\\})';
 
-    // a) ^{A}_{Z}X OR ^{A}_Z X  →  {_{ {Z} }^{ {A} }}X
-    w = w.replace(
+  // ^{A}_{Z}X OR ^{A}_Z X  →  {_{ {Z} }^{ {A} }}X
+  w = w.replace(
     new RegExp('\\^\\{\\s*([^}]*)\\s*\\}_(?:\\{\\s*([^}]*)\\s*\\}|\\s*([^\\s]+))\\s*(' + EL + ')', 'g'),
     (m, A, Z1, Z2, X) => `{_{ {${Z1 || Z2}} }^{ {${A}} }}${X}`
-    );
+  );
 
-    // b) _{Z}^{A}X OR _Z^{A}X  →  {_{ {Z} }^{ {A} }}X
-    w = w.replace(
+  // _{Z}^{A}X OR _Z^{A}X  →  {_{ {Z} }^{ {A} }}X
+  w = w.replace(
     new RegExp('_(?:\\{\\s*([^}]*)\\s*\\}|\\s*([^\\s]+))\\s*\\^\\{\\s*([^}]*)\\s*}\\s*(' + EL + ')', 'g'),
     (m, Z1, Z2, A, X) => `{_{ {${Z1 || Z2}} }^{ {${A}} }}${X}`
-    );
+  );
 
-
-
-  // 4) Greek shortcuts → Unicode
+  // Greek shortcuts → Unicode
   w = w.replace(/\\alpha/g, 'α');
   w = w.replace(/\\beta/g, 'β');
   w = w.replace(/\\gamma/g, 'γ');
 
-  // 5) Placeholders marker
+  // Placeholders marker
   w = w.replace(/\\placeholder\{[^}]*\}/g, '[placeholder]');
 
   return w;
