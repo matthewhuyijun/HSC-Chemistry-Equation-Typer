@@ -761,63 +761,545 @@ function typesetMath(){
 }
 
 function toWordEquation(latex) {
-  let w = String(latex ?? '');
-
-  // Arrows
-  w = w.replace(/\xrightarrow\s*\{\s*([\s\S]*?)\s*\}/g, (match, rawLabel) => {
-    const label = (rawLabel || '').trim();
-    if (!label) {
-      return '\\longrightarrow';
+    const supers = {
+        '0': '⁰',
+        '1': '¹',
+        '2': '²',
+        '3': '³',
+        '4': '⁴',
+        '5': '⁵',
+        '6': '⁶',
+        '7': '⁷',
+        '8': '⁸',
+        '9': '⁹',
+        '+': '⁺',
+        '-': '⁻',
+        '=': '⁼',
+        '(': '⁽',
+        ')': '⁾',
+        'n': 'ⁿ',
+        'i': 'ⁱ'
+    };
+    const subs = {
+        '0': '₀',
+        '1': '₁',
+        '2': '₂',
+        '3': '₃',
+        '4': '₄',
+        '5': '₅',
+        '6': '₆',
+        '7': '₇',
+        '8': '₈',
+        '9': '₉',
+        '+': '₊',
+        '-': '₋',
+        '=': '₌',
+        '(': '₍',
+        ')': '₎',
+        'a': 'ₐ',
+        'e': 'ₑ',
+        'h': 'ₕ',
+        'i': 'ᵢ',
+        'j': 'ⱼ',
+        'k': 'ₖ',
+        'l': 'ₗ',
+        'm': 'ₘ',
+        'n': 'ₙ',
+        'o': 'ₒ',
+        'p': 'ₚ',
+        'r': 'ᵣ',
+        's': 'ₛ',
+        't': 'ₜ',
+        'u': 'ᵤ',
+        'v': 'ᵥ',
+        'x': 'ₓ'
+    };
+    const supersToAscii = {};
+    for (const [plain, fancy] of Object.entries(supers)) {
+        supersToAscii[fancy] = plain;
     }
-    const hasPlaceholder = /\\placeholder/.test(label);
-    const startsWithCommand = /^\\[A-Za-z]/.test(label);
-    if (hasPlaceholder || startsWithCommand) {
-      return `\\buildrel${label}\\over\\longrightarrow`;
+    const subsToAscii = {};
+    for (const [plain, fancy] of Object.entries(subs)) {
+        subsToAscii[fancy] = plain;
     }
-    return `\\buildrel\\ ${label}\\over\\longrightarrow`;
-  });
-  w = w.replace(/\\\\buildrel/g, '\\buildrel');
-  // Thin spaces become real spaces for Word
-  w = w.replace(/\\:/g, ' ');
-  // Differential adjustments
-  w = w.replace(/\\differentialD\s?/g, 'd');
-  w = w.replace(/d\\theta/g, 'd{\\theta}');
-  w = w.replace(/d\\mu/g, 'd{\\mu}');
-  // Logical implication arrow
-  w = w.replace(/\\implies/g, '\Longrightarrow');
-  // Absolute value to scalable delimiters
-  w = w.replace(/\\lvert([\s\S]*?)\\rvert/g, '\left|$1\right|');
-  // Matrix environment for Word equation editor
-  w = w.replace(/\\begin\{pmatrix\}([\s\S]*?)\\end\{pmatrix\}/g, (match, inside) => {
-    const content = inside.trim().replace(/\\*$/, '') + '\\';
-    return '\\left(\\begin{matrix}' + content + '\\end{matrix}\\right)';
-  });
+    const decodeSupers = (value = '') => Array.from(value).map((ch) => supersToAscii[ch] ?? ch).join('');
+    const decodeSubs = (value = '') => Array.from(value).map((ch) => subsToAscii[ch] ?? ch).join('');
+    const normalizeChemicalInput = (value = '') => {
+        const stripped = String(value ?? '').replace(/[〖〗]/g, '').trim();
+        if (!stripped) {
+            return '';
+        }
+        let result = '';
+        let pendingSub = '';
+        let pendingSup = '';
+        const flushDecorations = () => {
+            if (pendingSub) {
+                const subToken = /^[0-9]+$/.test(pendingSub) ? `_${pendingSub}` : `_{${pendingSub}}`;
+                result += subToken;
+                pendingSub = '';
+            }
+            if (pendingSup) {
+                const supToken = /^[0-9+-]+$/.test(pendingSup) ? `^${pendingSup}` : `^{${pendingSup}}`;
+                result += supToken;
+                pendingSup = '';
+            }
+        };
+        for (const ch of stripped) {
+            if (Object.prototype.hasOwnProperty.call(subsToAscii, ch)) {
+                pendingSub += subsToAscii[ch];
+                continue;
+            }
+            if (Object.prototype.hasOwnProperty.call(supersToAscii, ch)) {
+                pendingSup += supersToAscii[ch];
+                continue;
+            }
+            flushDecorations();
+            result += ch;
+        }
+        flushDecorations();
+        return result;
+    };
+    const formatWordSymbol = (value = '') => {
+        const raw = String(value ?? '').replace(/[〖〗]/g, '').trim();
+        if (!raw) {
+            return '';
+        }
+        let base = '';
+        let sub = '';
+        let sup = '';
+        for (const ch of raw) {
+            if (Object.prototype.hasOwnProperty.call(subsToAscii, ch)) {
+                sub += subsToAscii[ch];
+                continue;
+            }
+            if (Object.prototype.hasOwnProperty.call(supersToAscii, ch)) {
+                sup += supersToAscii[ch];
+                continue;
+            }
+            if ((ch === '+' || ch === '-') && sup) {
+                sup += ch;
+                continue;
+            }
+            base += ch;
+        }
+        let result = base;
+        if (sub) {
+            result += /^[0-9]+$/.test(sub) ? `_${sub}` : `_(${sub})`;
+        }
+        if (sup) {
+            result += `^(${sup})`;
+        }
+        return result;
+    };
+    const formatChemicalFormula = (value = '') => {
+        const raw = String(value ?? '').trim();
+        if (!raw) {
+            return '';
+        }
+        let i = 0;
+        const len = raw.length;
+        const tokens = [];
+        let overallSup = '';
+        const readGroup = () => {
+            if (raw[i] === '{') {
+                i++;
+                let depth = 1;
+                const startIndex = i;
+                while (i < len && depth > 0) {
+                    const ch = raw[i];
+                    if (ch === '{') depth++;
+                    else if (ch === '}') depth--;
+                    i++;
+                }
+                return raw.slice(startIndex, i - 1).trim();
+            }
+            const startIndex = i;
+            while (i < len && /[0-9+-]/.test(raw[i])) { i++; }
+            return raw.slice(startIndex, i).trim();
+        };
 
-  // Isotope conversion ONLY
-  // Base X allowed: element symbol [A-Z][a-z]?, or {…}, or \placeholder{…}
-  const EL = '(?:[A-Z][a-z]?|\\{[^}]*\\}|\\\\placeholder\\{[^}]*\\})';
+        while (i < len) {
+            const ch = raw[i];
+            if (ch === ' ') { i++; continue; }
+            if (!/[A-Z]/.test(ch)) {
+                return '';
+            }
+            let symbol = ch;
+            i++;
+            if (i < len && /[a-z]/.test(raw[i])) {
+                symbol += raw[i];
+                i++;
+            }
+            let sub = '';
+            let sup = '';
+            if (i < len && raw[i] === '_') {
+                i++;
+                sub = readGroup();
+            }
+            if (i < len && raw[i] === '^') {
+                i++;
+                sup = readGroup();
+            }
+            tokens.push({ symbol, sub, sup });
+        }
 
-  // ^{A}_{Z}X OR ^{A}_Z X  →  {_{ {Z} }^{ {A} }}X
-  w = w.replace(
-    new RegExp('\\^\\{\\s*([^}]*)\\s*\\}_(?:\\{\\s*([^}]*)\\s*\\}|\\s*([^\\s]+))\\s*(' + EL + ')', 'g'),
-    (m, A, Z1, Z2, X) => `{_{ {${Z1 || Z2}} }^{ {${A}} }}${X}`
-  );
+        if (!tokens.length) {
+            return '';
+        }
 
-  // _{Z}^{A}X OR _Z^{A}X  →  {_{ {Z} }^{ {A} }}X
-  w = w.replace(
-    new RegExp('_(?:\\{\\s*([^}]*)\\s*\\}|\\s*([^\\s]+))\\s*\\^\\{\\s*([^}]*)\\s*}\\s*(' + EL + ')', 'g'),
-    (m, Z1, Z2, A, X) => `{_{ {${Z1 || Z2}} }^{ {${A}} }}${X}`
-  );
+        const supTokens = tokens.filter((t) => t.sup);
+        if (supTokens.length === 1 && tokens.length > 1) {
+            const last = tokens[tokens.length - 1];
+            if (last.sup) {
+                overallSup = last.sup;
+                last.sup = '';
+            }
+        }
 
-  // Greek shortcuts → Unicode
-  w = w.replace(/\\alpha/g, 'α');
-  w = w.replace(/\\beta/g, 'β');
-  w = w.replace(/\\gamma/g, 'γ');
+        const parts = tokens.map(({ symbol, sub, sup }) => {
+            let part = symbol.length > 1 ? `〖${symbol}〗` : symbol;
+            if (sub) {
+                part += /^[0-9]+$/.test(sub) ? `_${sub}` : `_(${sub})`;
+            }
+            if (sup) {
+                part += `^(${sup})`;
+            }
+            return part;
+        });
 
-  // Placeholders marker
-  w = w.replace(/\\placeholder\{[^}]*\}/g, '[placeholder]');
+        let inner = parts.join(' ');
+        if (overallSup) {
+            inner += `^(${overallSup})`;
+        }
+        return `〖${inner.trim()}〗`;
+    };
 
-  return w;
+    const greekMap = {
+        alpha: 'α',
+        beta: 'β',
+        gamma: 'γ',
+        delta: 'δ',
+        Delta: 'Δ',
+        epsilon: 'ε',
+        varepsilon: 'ε',
+        vartheta: 'ϑ',
+        theta: 'θ',
+        Theta: 'Θ',
+        kappa: 'κ',
+        lambda: 'λ',
+        Lambda: 'Λ',
+        mu: 'μ',
+        nu: 'ν',
+        xi: 'ξ',
+        Xi: 'Ξ',
+        pi: 'π',
+        Pi: 'Π',
+        rho: 'ρ',
+        sigma: 'σ',
+        Sigma: 'Σ',
+        tau: 'τ',
+        upsilon: 'υ',
+        Upsilon: 'Υ',
+        phi: 'φ',
+        Phi: 'Φ',
+        varphi: 'ϕ',
+        chi: 'χ',
+        psi: 'ψ',
+        Psi: 'Ψ',
+        Gamma: 'Γ',
+        Beta: 'Β',
+        Alpha: 'Α',
+        Mu: 'Μ',
+        Rho: 'Ρ',
+        Tau: 'Τ',
+        omega: 'ω',
+        Omega: 'Ω',
+        zeta: 'ζ',
+        eta: 'η'
+    };
+    const doubleStruck = {
+        'A': '𝔸', 'B': '𝔹', 'C': 'ℂ', 'D': '𝔻', 'E': '𝔼', 'F': '𝔽', 'G': '𝔾',
+        'H': 'ℍ', 'I': '𝕀', 'J': '𝕁', 'K': '𝕂', 'L': '𝕃', 'M': '𝕄', 'N': 'ℕ',
+        'O': '𝕆', 'P': 'ℙ', 'Q': 'ℚ', 'R': 'ℝ', 'S': '𝕊', 'T': '𝕋', 'U': '𝕌',
+        'V': '𝕍', 'W': '𝕎', 'X': '𝕏', 'Y': '𝕐', 'Z': 'ℤ',
+        'a': '𝕒', 'b': '𝕓', 'c': '𝕔', 'd': '𝕕', 'e': '𝕖', 'f': '𝕗', 'g': '𝕘',
+        'h': '𝕙', 'i': '𝕚', 'j': '𝕛', 'k': '𝕜', 'l': '𝕝', 'm': '𝕞', 'n': '𝕟',
+        'o': '𝕠', 'p': '𝕡', 'q': '𝕢', 'r': '𝕣', 's': '𝕤', 't': '𝕥', 'u': '𝕦',
+        'v': '𝕧', 'w': '𝕨', 'x': '𝕩', 'y': '𝕪', 'z': '𝕫',
+        '0': '𝟘', '1': '𝟙', '2': '𝟚', '3': '𝟛', '4': '𝟜', '5': '𝟝',
+        '6': '𝟞', '7': '𝟟', '8': '𝟠', '9': '𝟡'
+    };
+    const scriptMap = {
+        'A': '𝒜', 'B': 'ℬ', 'C': '𝒞', 'D': '𝒟', 'E': 'ℰ', 'F': 'ℱ', 'G': '𝒢',
+        'H': 'ℋ', 'I': 'ℐ', 'J': '𝒥', 'K': '𝒦', 'L': 'ℒ', 'M': 'ℳ', 'N': '𝒩',
+        'O': '𝒪', 'P': '𝒫', 'Q': '𝒬', 'R': 'ℛ', 'S': '𝒮', 'T': '𝒯', 'U': '𝒰',
+        'V': '𝒱', 'W': '𝒲', 'X': '𝒳', 'Y': '𝒴', 'Z': '𝒵',
+        'a': '𝒶', 'b': '𝒷', 'c': '𝒸', 'd': '𝒹', 'e': 'ℯ', 'f': '𝒻', 'g': 'ℊ',
+        'h': '𝒽', 'i': '𝒾', 'j': '𝒿', 'k': '𝓀', 'l': '𝓁', 'm': '𝓂', 'n': '𝓃',
+        'o': 'ℴ', 'p': '𝓅', 'q': '𝓆', 'r': '𝓇', 's': '𝓈', 't': '𝓉', 'u': '𝓊',
+        'v': '𝓋', 'w': '𝓌', 'x': '𝓍', 'y': '𝓎', 'z': '𝓏'
+    };
+    const frakturMap = {
+        'A': '𝔄', 'B': '𝔅', 'C': 'ℭ', 'D': '𝔇', 'E': '𝔈', 'F': '𝔉', 'G': '𝔊',
+        'H': '𝔋', 'I': '𝔌', 'J': '𝔍', 'K': '𝔎', 'L': '𝔏', 'M': '𝔐', 'N': '𝔑',
+        'O': '𝔒', 'P': '𝔓', 'Q': '𝔔', 'R': 'ℜ', 'S': '𝔖', 'T': '𝔗', 'U': '𝔘',
+        'V': '𝔙', 'W': '𝔚', 'X': '𝔛', 'Y': '𝔜', 'Z': 'ℨ',
+        'a': '𝔞', 'b': '𝔟', 'c': '𝔠', 'd': '𝔡', 'e': '𝔢', 'f': '𝔣', 'g': '𝔤',
+        'h': '𝔥', 'i': '𝔦', 'j': '𝔧', 'k': '𝔨', 'l': '𝔩', 'm': '𝔪', 'n': '𝔫',
+        'o': '𝔬', 'p': '𝔭', 'q': '𝔮', 'r': '𝔯', 's': '𝔰', 't': '𝔱', 'u': '𝔲',
+        'v': '𝔳', 'w': '𝔴', 'x': '𝔵', 'y': '𝔶', 'z': '𝔷'
+    };
+    const commandReplacements = [
+        [/\\Longleftrightarrow/g, '⇔'],
+        [/\\rightarrow\\rightleftharpoons/g, '⇌'],
+        [/\\rightleftharpoons/g, '⇌'],
+        [/\\leftharpoons/g, '⇌'],
+        [/\\longleftrightarrow/g, '⟷'],
+        [/\\leftrightarrow/g, '↔'],
+        [/\\Longrightarrow/g, '⇒'],
+        [/\\Rightarrow/g, '⇒'],
+        [/\\Longleftarrow/g, '⇐'],
+        [/\\Leftarrow/g, '⇐'],
+        [/\\longrightarrow/g, '→'],
+        [/\\rightarrow/g, '→'],
+        [/\\to\b/g, '→'],
+        [/\\longleftarrow/g, '←'],
+        [/\\leftarrow/g, '←'],
+        [/\\mapsto/g, '↦'],
+        [/\\implies/g, '⇒'],
+        [/\\iff/g, '⇔'],
+        [/\\uparrow/g, '↑'],
+        [/\\downarrow/g, '↓'],
+        [/\\updownarrow/g, '↕'],
+        [/\\rightleftharpoons/g, '⇌'],
+        [/\\leftharpoondown/g, '↽'],
+        [/\\rightharpoondown/g, '⇁'],
+        [/\\leftharpoonup/g, '↼'],
+        [/\\rightharpoonup/g, '⇀'],
+        [/\\pm/g, '±'],
+        [/\\mp/g, '∓'],
+        [/\\times/g, '×'],
+        [/\\cdot/g, '·'],
+        [/\\div/g, '÷'],
+        [/\\ast/g, '∗'],
+        [/\\star/g, '⋆'],
+        [/\\bullet/g, '•'],
+        [/\\circ/g, '∘'],
+        [/\\infty/g, '∞'],
+        [/\\partial/g, '∂'],
+        [/\\nabla/g, '∇'],
+        [/\\iiint/g, '∭'],
+        [/\\iint/g, '∬'],
+        [/\\int/g, '∫'],
+        [/\\sum/g, '∑'],
+        [/\\prod/g, '∏'],
+        [/\\oint/g, '∮'],
+        [/\\therefore/g, '∴'],
+        [/\\because/g, '∵'],
+        [/\\angle/g, '∠'],
+        [/\\approx/g, '≈'],
+        [/\\simeq/g, '≃'],
+        [/\\sim/g, '∼'],
+        [/\\cong/g, '≅'],
+        [/\\neq/g, '≠'],
+        [/\\leqslant/g, '≤'],
+        [/\\leq/g, '≤'],
+        [/\\geqslant/g, '≥'],
+        [/\\geq/g, '≥'],
+        [/\\propto/g, '∝'],
+        [/\\subseteq/g, '⊆'],
+        [/\\supseteq/g, '⊇'],
+        [/\\subset/g, '⊂'],
+        [/\\supset/g, '⊃'],
+        [/\\in/g, '∈'],
+        [/\\notin/g, '∉'],
+        [/\\ni/g, '∋'],
+        [/\\cup/g, '∪'],
+        [/\\cap/g, '∩'],
+        [/\\setminus/g, '∖'],
+        [/\\forall/g, '∀'],
+        [/\\exists/g, '∃'],
+        [/\\land/g, '∧'],
+        [/\\lor/g, '∨'],
+        [/\\neg/g, '¬'],
+        [/\\cdots/g, '⋯'],
+        [/\\ldots/g, '…'],
+        [/\\dotsc/g, '…'],
+        [/\\vdots/g, '⋮'],
+        [/\\ddots/g, '⋱'],
+        [/\\triangle/g, '△'],
+        [/\\bigtriangleup/g, '△'],
+        [/\\triangleleft/g, '◁'],
+        [/\\triangleright/g, '▷'],
+        [/\\langle/g, '⟨'],
+        [/\\rangle/g, '⟩'],
+        [/\\lfloor/g, '⌊'],
+        [/\\rfloor/g, '⌋'],
+        [/\\lceil/g, '⌈'],
+        [/\\rceil/g, '⌉'],
+        [/\\deg/g, '°'],
+        [/\\triangleq/g, '≜'],
+        [/\\equiv/g, '≡'],
+        [/\\perp/g, '⊥'],
+        [/\\parallel/g, '∥'],
+        [/\\prime/g, '′'],
+        [/\\emptyset/g, '∅'],
+        [/\\aleph/g, 'ℵ'],
+        [/\\Box/g, '□']
+    ];
+
+    function mapToChars(value, table) {
+        return Array.from(value).map((char) => table[char] || char).join('');
+    }
+
+    function simplifyFunctions(value) {
+        return value.replace(/\\(sin|cos|tan|csc|sec|cot|log|ln|exp|max|min|mod)\b/g, (_, fn) => fn);
+    }
+
+    function cleanSegment(segment, depth = 0) {
+        if (depth > 5) {
+            return segment ?? '';
+        }
+        let text = String(segment ?? '');
+        if (!text) {
+            return '';
+        }
+
+        text = text.replace(/\r\n?/g, '\n');
+
+        const wordArrow = (arrow, labelSource) => {
+            const cleanLabel = cleanSegment(labelSource, depth + 1).trim();
+            if (!cleanLabel) {
+                return arrow;
+            }
+            return `□(${arrow}┴${cleanLabel} )`;
+        };
+
+        text = text.replace(/\\xrightarrow\s*\{\s*([^}]*)\s*\}/g, (_, label) => wordArrow('→', label));
+        text = text.replace(/\\xleftarrow\s*\{\s*([^}]*)\s*\}/g, (_, label) => wordArrow('←', label));
+        text = text.replace(/\\xleftrightarrow\s*\{\s*([^}]*)\s*\}/g, (_, label) => wordArrow('↔', label));
+
+        text = text.replace(/\\frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, (_, num, den) => {
+            const top = cleanSegment(num, depth + 1).trim();
+            const bottom = cleanSegment(den, depth + 1).trim();
+            if (!bottom) {
+                return top;
+            }
+            return `${top}⁄${bottom}`;
+        });
+        text = text.replace(/\\sqrt\s*\[\s*([^\]]+)\s*\]\s*\{([^{}]+)\}/g, (_, degree, radicand) => {
+            const n = mapToChars(cleanSegment(degree, depth + 1).trim(), supers);
+            const inside = cleanSegment(radicand, depth + 1);
+            return `${n}√(${inside})`;
+        });
+        text = text.replace(/\\sqrt\s*\{([^{}]+)\}/g, (_, radicand) => {
+            const inside = cleanSegment(radicand, depth + 1);
+            return `√(${inside})`;
+        });
+
+        text = text.replace(/\\overline\s*\{([^{}]+)\}/g, (_, inner) => `${cleanSegment(inner, depth + 1)}̅`);
+        text = text.replace(/\\bar\s*\{([^{}]+)\}/g, (_, inner) => `${cleanSegment(inner, depth + 1)}̄`);
+        text = text.replace(/\\hat\s*\{([^{}]+)\}/g, (_, inner) => `${cleanSegment(inner, depth + 1)}̂`);
+        text = text.replace(/\\tilde\s*\{([^{}]+)\}/g, (_, inner) => `${cleanSegment(inner, depth + 1)}̃`);
+        text = text.replace(/\\vec\s*\{([^{}]+)\}/g, (_, inner) => `${cleanSegment(inner, depth + 1)}⃗`);
+        text = text.replace(/\\underline\s*\{([^{}]+)\}/g, (_, inner) => `${cleanSegment(inner, depth + 1)}̲`);
+
+        text = text.replace(/\\rightarrow\\rightleftharpoons/g, '⇌');
+        text = text.replace(/\\rightleftharpoons/g, '⇌');
+        text = text.replace(/\\leftharpoons/g, '⇌');
+        text = text.replace(/\\left(?=\s*[\(\[\{])/g, '');
+        text = text.replace(/\\right(?=\s*[\)\]\}])/g, '');
+        text = text.replace(/\\!/g, '');
+        text = text.replace(/\\quad|\\qquad/g, '    ');
+        text = text.replace(/\\,|\\;|\\:|\\thinspace/g, ' ');
+        text = text.replace(/~/g, ' ');
+        text = text.replace(/\\%/g, '%').replace(/\\#/g, '#').replace(/\\&/g, '&');
+        text = text.replace(/\\\{/g, '{').replace(/\\\}/g, '}');
+        text = text.replace(/\\_/g, '_');
+
+        text = text.replace(/\\text\s*\{([^}]*)\}/g, (_, value) => cleanSegment(value, depth + 1));
+        text = text.replace(/\\mathrm\s*\{([^}]*)\}/g, (_, value) => cleanSegment(value, depth + 1));
+        text = text.replace(/\\operatorname\s*\{([^}]*)\}/g, (_, value) => cleanSegment(value, depth + 1));
+
+        text = text.replace(/\\mathbb\s*\{([^{}]+)\}/g, (_, value) => mapToChars(cleanSegment(value, depth + 1), doubleStruck));
+        text = text.replace(/\\mathcal\s*\{([^{}]+)\}/g, (_, value) => mapToChars(cleanSegment(value, depth + 1), scriptMap));
+        text = text.replace(/\\mathscr\s*\{([^{}]+)\}/g, (_, value) => mapToChars(cleanSegment(value, depth + 1), scriptMap));
+        text = text.replace(/\\mathfrak\s*\{([^{}]+)\}/g, (_, value) => mapToChars(cleanSegment(value, depth + 1), frakturMap));
+        text = text.replace(/\\mathbf\s*\{([^{}]+)\}/g, (_, value) => cleanSegment(value, depth + 1));
+        text = text.replace(/\\mathit\s*\{([^{}]+)\}/g, (_, value) => cleanSegment(value, depth + 1));
+        text = text.replace(/\\mathsf\s*\{([^{}]+)\}/g, (_, value) => cleanSegment(value, depth + 1));
+        text = text.replace(/\\mathnormal\s*\{([^{}]+)\}/g, (_, value) => cleanSegment(value, depth + 1));
+        text = text.replace(/\{([^{}]+)\}(?=\s*_\(\((aq|s|l|g)\)\))/gi, '$1');
+        text = text.replace(/_(?:\{\s*)?\((aq|s|l|g)\)(?:\s*\})?/gi, (_, state) => `_((` + state.toLowerCase() + `))`);
+        text = text.replace(/([^\s]+)_\(\((aq|s|l|g)\)\)/gi, (full, species, state) => {
+            if (species.startsWith('〖') && species.endsWith('〗')) {
+                return `${species}_((` + state.toLowerCase() + `))`;
+            }
+            const cleaned = cleanSegment(species, depth + 1).trim();
+            if (!cleaned) {
+                return full;
+            }
+            const chemical = formatChemicalFormula(cleaned);
+            if (chemical) {
+                return `${chemical}_((` + state.toLowerCase() + `))`;
+            }
+            if (/(_\(|\^\(|〖)/.test(cleaned)) {
+                return `〖${cleaned}〗_((` + state.toLowerCase() + `))`;
+            }
+            const formatted = formatWordSymbol(cleaned) || cleaned;
+            return formatted ? `〖${formatted}〗_((` + state.toLowerCase() + `))` : full;
+        });
+        text = text.replace(/\\color\s*\{[^}]*\}/g, '');
+
+        text = text.replace(/\\binom\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, (_, top, bottom) => `(${cleanSegment(top, depth + 1)} choose ${cleanSegment(bottom, depth + 1)})`);
+        text = text.replace(/\\cfrac/g, '\\frac');
+        text = text.replace(/\\choose/g, ' choose ');
+        text = text.replace(/\\begin\s*\{[^}]*\}/g, '');
+        text = text.replace(/\\end\s*\{[^}]*\}/g, '');
+        text = text.replace(/&/g, ' ');
+
+        text = text.replace(/\\\\/g, '\n');
+
+        for (const [pattern, value] of commandReplacements) {
+            text = text.replace(pattern, value);
+        }
+
+        text = text.replace(/→\s*⇌/g, '⇌');
+
+        text = simplifyFunctions(text);
+
+        text = text.replace(/\\([A-Za-z]+)/g, (match, name) => {
+            if (Object.prototype.hasOwnProperty.call(greekMap, name)) {
+                return greekMap[name];
+            }
+            return name;
+        });
+
+        text = text.replace(/\\placeholder\{[^}]*\}/g, '□');
+
+        // Superscripts: only convert when we have an explicit group or when
+        // the caret is followed by a +, -, or a multi-digit/letter token common in chemistry charges (e.g., 2+, 3-, n+, etc.).
+        // This avoids prematurely committing after typing a single digit like "2" before adding the sign.
+        text = text.replace(/\^\{([^{}]+)\}/g, (_, content) => mapToChars(cleanSegment(content, depth + 1), supers));
+        text = text.replace(/\^(\+|\-|[a-zA-Z]+[+\-]?|\d+[a-zA-Z]*[+\-]?)/g, (_, token) => mapToChars(token, supers));
+        text = text.replace(/_(\{([^{}]+)\}|((?!\(\()[A-Za-z0-9+\-()=]))/g, (match, _whole, braced, single) => {
+            const inner = braced ? braced : single;
+            const plain = cleanSegment(inner, depth + 1);
+            if (plain === '(' || plain === ')') {
+                return match;
+            }
+            return mapToChars(plain, subs);
+        });
+        text = text.replace(/([⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]+)\s*([₀₁₂₃₄₅₆₇₈₉₊₋]+)\s*([A-Za-z][A-Za-z0-9]*)/g, (_, supPart, subPart, symbol) => `(_${decodeSubs(subPart)}^${decodeSupers(supPart)})${symbol}`);
+        text = text.replace(/([₀₁₂₃₄₅₆₇₈₉₊₋]+)\s*([⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]+)\s*([A-Za-z][A-Za-z0-9]*)/g, (_, subPart, supPart, symbol) => `(_${decodeSubs(subPart)}^${decodeSupers(supPart)})${symbol}`);
+
+        text = text.replace(/[{}]/g, '');
+        text = text.replace(/\s+\n/g, '\n').replace(/\n\s+/g, '\n');
+        text = text.replace(/[ \t]+/g, ' ');
+        return text.trim();
+    }
+
+    return cleanSegment(latex);
 }
 
 function syncFromMath(){
@@ -845,7 +1327,19 @@ function setupMathField(){
   textArea.addEventListener('input', syncFromText);
 
   mathField.addEventListener('keydown', (e)=>{
-    if(e.key === ' '){ e.preventDefault(); insertText(' \\: '); return; }
+    // Do not hijack normal typing after arrows; only handle space-to-\\: mapping
+    // when not immediately after a control sequence or arrow.
+    if(e.key === ' '){
+      const val = mathField.getValue('latex') || '';
+      // If we're in the middle of a control sequence like \\rightarrow or just typed \\xrightarrow{...},
+      // allow a normal space so typing doesn't freeze.
+      if(/\\\\[A-Za-z]+$/.test(val) || /\\\\x(?:left|right)arrow\s*\{[^}]*\}$/.test(val)){
+        return; // let space pass through
+      }
+      e.preventDefault();
+      insertText(' \\: ');
+      return;
+    }
     if(e.key !== 'Backspace') return;
     const latex = mathField.getValue('latex') || '';
     if(stateRegex.test(latex)){
