@@ -864,21 +864,21 @@ header .header-actions .header-copy svg{ stroke: currentColor !important; }
     <div class="body stack">
       <div class="editor">
         <label><strong>Rendered Input (Editable)</strong></label>
-        <math-field id="mf" smart-fence letter-shape-style="tex" virtual-keyboard-mode="off" tabindex="0" placeholder="Type here…"></math-field>
+        <math-field id="mf" smart-fence letter-shape-style="tex" virtual-keyboard-mode="off" tabindex="0"></math-field>
       </div>
       <div class="editor">
         <label>
           <strong>Raw LaTeX Input</strong>
           <button id="copyLatex" class="copyBtn" type="button">Copy LaTeX</button>
         </label>
-        <textarea id="ta" placeholder="Type or paste LaTeX here…"></textarea>
+        <textarea id="ta"></textarea>
       </div>
       <div class="editor">
         <label>
           <strong>Word Equation</strong>
           <button id="copyWordBtn" class="copyBtn" type="button">Copy Word Equation</button>
         </label>
-        <textarea id="wordOut" placeholder="Word equation output…" readonly></textarea>
+        <textarea id="wordOut" readonly></textarea>
       </div>
     </div>
   </div>
