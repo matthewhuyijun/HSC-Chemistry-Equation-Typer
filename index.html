@@ -9,7 +9,7 @@
 <style>
 :root {
   color-scheme: light;
-  --page-max-width: 1200px;
+  --page-max-width: 2280px;
   --page-pad-x: 24px;
   --content-max: var(--page-max-width);
   --content-pad-x: var(--page-pad-x);
@@ -375,7 +375,7 @@ textarea {
   transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
 }
 .key mjx-container {
-  font-size: calc(20px * var(--scale));
+  font-size: calc(16px * var(--scale));
   max-width: 100%;
 }
 .key:hover,
@@ -864,7 +864,7 @@ header .header-actions .header-copy svg{ stroke: currentColor !important; }
     <div class="body stack">
       <div class="editor">
         <label><strong>Rendered Input (Editable)</strong></label>
-        <math-field id="mf" smart-fence letter-shape-style="tex" virtual-keyboard-mode="off" tabindex="0"></math-field>
+        <math-field id="mf" smart-fence letter-shape-style="tex" virtual-keyboard-mode="off" remove-extraneous-parentheses="on" menu-items="[]" tabindex="0"></math-field>
       </div>
       <div class="editor">
         <label>
@@ -930,6 +930,9 @@ const wordOutput = document.getElementById('wordOut');
 const previewDiv = document.getElementById('preview');
 const statusDiv = document.getElementById('status');
 
+// Store raw LaTeX WITH \! for word equation generation
+let rawLatex = '';
+
 function showToast(message = 'Copied!') {
   const toast = document.getElementById('toast');
   if (!toast) return;
@@ -984,57 +987,10 @@ function typesetMath(){
 
 function toWordEquation(latex) {
     const supers = {
-        '0': '⁰',
-        '1': '¹',
-        '2': '²',
-        '3': '³',
-        '4': '⁴',
-        '5': '⁵',
-        '6': '⁶',
-        '7': '⁷',
-        '8': '⁸',
-        '9': '⁹',
-        '+': '⁺',
-        '-': '⁻',
-        '=': '⁼',
-        '(': '⁽',
-        ')': '⁾',
-        'n': 'ⁿ',
-        'i': 'ⁱ'
+        // All superscript conversions disabled - keep LaTeX format
     };
     const subs = {
-        '0': '₀',
-        '1': '₁',
-        '2': '₂',
-        '3': '₃',
-        '4': '₄',
-        '5': '₅',
-        '6': '₆',
-        '7': '₇',
-        '8': '₈',
-        '9': '₉',
-        '+': '₊',
-        '-': '₋',
-        '=': '₌',
-        '(': '₍',
-        ')': '₎',
-        'a': 'ₐ',
-        'e': 'ₑ',
-        'h': 'ₕ',
-        'i': 'ᵢ',
-        'j': 'ⱼ',
-        'k': 'ₖ',
-        'l': 'ₗ',
-        'm': 'ₘ',
-        'n': 'ₙ',
-        'o': 'ₒ',
-        'p': 'ₚ',
-        'r': 'ᵣ',
-        's': 'ₛ',
-        't': 'ₜ',
-        'u': 'ᵤ',
-        'v': 'ᵥ',
-        'x': 'ₓ'
+        // All subscript conversions disabled - keep LaTeX format
     };
     const supersToAscii = {};
     for (const [plain, fancy] of Object.entries(supers)) {
@@ -1181,7 +1137,11 @@ function toWordEquation(latex) {
         const parts = tokens.map(({ symbol, sub, sup }) => {
             let part = symbol.length > 1 ? `〖${symbol}〗` : symbol;
             if (sub) {
-                part += /^[0-9]+$/.test(sub) ? `_${sub}` : `_(${sub})`;
+                if (/^[0-9]+$/.test(sub)) {
+                    part += `_${sub} `;  // Add space after numeric subscript
+                } else {
+                    part += `_(${sub})`;
+                }
             }
             if (sup) {
                 part += `^(${sup})`;
@@ -1189,11 +1149,12 @@ function toWordEquation(latex) {
             return part;
         });
 
-        let inner = parts.join(' ');
+        let inner = parts.join('');
         if (overallSup) {
+            inner = inner.trim();
             inner += `^(${overallSup})`;
         }
-        return `〖${inner.trim()}〗`;
+        return `〖${inner}〗`;
     };
 
     const greekMap = {
@@ -1274,7 +1235,7 @@ function toWordEquation(latex) {
     const commandReplacements = [
         [/\\Longleftrightarrow/g, '⇔'],
         [/\\rightarrow\\rightleftharpoons/g, '⇌'],
-        [/\\rightleftharpoons/g, '⇌'],
+        [/\\rightleftharpoons/g, ' ⇌ '],
         [/\\leftharpoons/g, '⇌'],
         [/\\longleftrightarrow/g, '⟷'],
         [/\\leftrightarrow/g, '↔'],
@@ -1283,7 +1244,7 @@ function toWordEquation(latex) {
         [/\\Longleftarrow/g, '⇐'],
         [/\\Leftarrow/g, '⇐'],
         [/\\longrightarrow/g, '→'],
-        [/\\rightarrow/g, '→'],
+        [/\\rightarrow/g, ' → '],
         [/\\to\b/g, '→'],
         [/\\longleftarrow/g, '←'],
         [/\\leftarrow/g, '←'],
@@ -1392,9 +1353,9 @@ function toWordEquation(latex) {
         const wordArrow = (arrow, labelSource) => {
             const cleanLabel = cleanSegment(labelSource, depth + 1).trim();
             if (!cleanLabel) {
-                return arrow;
+                return ` ${arrow} `;
             }
-            return `□(${arrow}┴${cleanLabel} )`;
+            return ` □(${arrow}┴${cleanLabel} ) `;
         };
 
         text = text.replace(/\\xrightarrow\s*\{\s*([^}]*)\s*\}/g, (_, label) => wordArrow('→', label));
@@ -1410,9 +1371,9 @@ function toWordEquation(latex) {
             return `${top}⁄${bottom}`;
         });
         text = text.replace(/\\sqrt\s*\[\s*([^\]]+)\s*\]\s*\{([^{}]+)\}/g, (_, degree, radicand) => {
-            const n = mapToChars(cleanSegment(degree, depth + 1).trim(), supers);
+            const n = cleanSegment(degree, depth + 1).trim();
             const inside = cleanSegment(radicand, depth + 1);
-            return `${n}√(${inside})`;
+            return `^${n}√(${inside})`;
         });
         text = text.replace(/\\sqrt\s*\{([^{}]+)\}/g, (_, radicand) => {
             const inside = cleanSegment(radicand, depth + 1);
@@ -1451,7 +1412,7 @@ function toWordEquation(latex) {
         text = text.replace(/\\mathit\s*\{([^{}]+)\}/g, (_, value) => cleanSegment(value, depth + 1));
         text = text.replace(/\\mathsf\s*\{([^{}]+)\}/g, (_, value) => cleanSegment(value, depth + 1));
         text = text.replace(/\\mathnormal\s*\{([^{}]+)\}/g, (_, value) => cleanSegment(value, depth + 1));
-        text = text.replace(/\{([^{}]+)\}(?=\s*_\(\((aq|s|l|g)\)\))/gi, '$1');
+        // text = text.replace(/\{([^{}]+)\}(?=\s*_\(\((aq|s|l|g)\)\))/gi, '$1');
         text = text.replace(/_(?:\{\s*)?\((aq|s|l|g)\)(?:\s*\})?/gi, (_, state) => `_((` + state.toLowerCase() + `))`);
         text = text.replace(/([^\s]+)_\(\((aq|s|l|g)\)\)/gi, (full, species, state) => {
             if (species.startsWith('〖') && species.endsWith('〗')) {
@@ -1499,25 +1460,36 @@ function toWordEquation(latex) {
 
         text = text.replace(/\\placeholder\{[^}]*\}/g, '□');
 
-        // Superscripts: only convert when we have an explicit group or when
-        // the caret is followed by a +, -, or a multi-digit/letter token common in chemistry charges (e.g., 2+, 3-, n+, etc.).
-        // This avoids prematurely committing after typing a single digit like "2" before adding the sign.
-        text = text.replace(/\^\{([^{}]+)\}/g, (_, content) => mapToChars(cleanSegment(content, depth + 1), supers));
-        text = text.replace(/\^(\+|\-|[a-zA-Z]+[+\-]?|\d+[a-zA-Z]*[+\-]?)/g, (_, token) => mapToChars(token, supers));
-        text = text.replace(/_(\{([^{}]+)\}|((?!\(\()[A-Za-z0-9+\-()=]))/g, (match, _whole, braced, single) => {
+        // Keep superscripts in LaTeX format - no Unicode conversion
+        text = text.replace(/\^\{([^{}]+)\}/g, (_, content) => `^(${cleanSegment(content, depth + 1)})`);
+        text = text.replace(/\^(\+|\-|[a-zA-Z]+[+\-]?|\d+[a-zA-Z]*[+\-]?)/g, (_, token) => `^${token}`);
+        
+        // Handle {Element}_subscript patterns - add space between groups
+        text = text.replace(/\{([A-Z][a-z]?)\}_(\{[^}]+\}|\d+)/g, (match, element, sub) => {
+            const cleanSub = sub.startsWith('{') ? sub.slice(1, -1) : sub;
+            return `{${element}}_${cleanSub} `;
+        });
+        
+        text = text.replace(/_(\{([^{}]+)\}|((?!\(\()[A-Za-z0-9+\-()=]))(\s?)/g, (match, _whole, braced, single, trailingSpace) => {
             const inner = braced ? braced : single;
             const plain = cleanSegment(inner, depth + 1);
             if (plain === '(' || plain === ')') {
                 return match;
             }
-            return mapToChars(plain, subs);
+            // Keep subscripts in LaTeX format - no Unicode conversion
+            // Add space after numeric subscripts for better readability
+            const shouldAddSpace = /^\d+$/.test(plain);
+            return `_${plain}${shouldAddSpace ? ' ' : trailingSpace}`;
         });
-        text = text.replace(/([⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]+)\s*([₀₁₂₃₄₅₆₇₈₉₊₋]+)\s*([A-Za-z][A-Za-z0-9]*)/g, (_, supPart, subPart, symbol) => `(_${decodeSubs(subPart)}^${decodeSupers(supPart)})${symbol}`);
-        text = text.replace(/([₀₁₂₃₄₅₆₇₈₉₊₋]+)\s*([⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]+)\s*([A-Za-z][A-Za-z0-9]*)/g, (_, subPart, supPart, symbol) => `(_${decodeSubs(subPart)}^${decodeSupers(supPart)})${symbol}`);
+        // Unicode conversion disabled - these patterns are no longer needed
+        
+        // Handle isotope notation: _subscript ^superscript Element -> (_subscript^superscript)Element
+        text = text.replace(/_([A-Za-z0-9+\-]+)\s*\^([A-Za-z0-9+\-]+)\s*([A-Z][a-z]?)/g, '(_$1^$2)$3');
 
         text = text.replace(/[{}]/g, '');
         text = text.replace(/\s+\n/g, '\n').replace(/\n\s+/g, '\n');
-        text = text.replace(/[ \t]+/g, ' ');
+        // Keep multiple spaces - don't collapse them
+        // text = text.replace(/[ \t]+/g, ' ');
         return text.trim();
     }
 
@@ -1526,16 +1498,38 @@ function toWordEquation(latex) {
 
 function syncFromMath(){
   const val = mathField.getValue('latex') || '';
-  textArea.value = val;
-  wordOutput.value = toWordEquation(val);
-  previewDiv.innerHTML = '$$' + val + '$$';
+  
+  // Store raw version WITH \!
+  rawLatex = val;
+  
+  // Display version WITHOUT \! in text area
+  textArea.value = val.replace(/\\!/g, '');
+  
+  // Generate word equation from version WITH \!
+  wordOutput.value = toWordEquation(rawLatex);
+  
+  // Preview also WITHOUT \!
+  const previewVal = val.replace(/\\!/g, '');
+  previewDiv.innerHTML = '$$' + previewVal + '$$';
   typesetMath();
 }
 
 function syncFromText(){
-  const val = textArea.value;
-  wordOutput.value = toWordEquation(val);
-  previewDiv.innerHTML = '$$' + val + '$$';
+  let val = textArea.value;
+  
+  // Auto-wrap single capital letters (optionally followed by lowercase) before subscripts/superscripts
+  // This converts patterns like "A_1" to "{A}_1" and "Ca_2" to "{Ca}_2"
+  val = val.replace(/\b([A-Z][a-z]?)(?=[\^_])/g, '{$1}');
+  
+  // Store as raw (user edits don't include \! since they can't see it)
+  rawLatex = val;
+  
+  // Generate word equation from the raw version
+  wordOutput.value = toWordEquation(rawLatex);
+  
+  // Preview WITHOUT \!
+  const previewVal = val.replace(/\\!/g, '');
+  previewDiv.innerHTML = '$$' + previewVal + '$$';
   typesetMath();
   mathField.setValue(val);
 }
@@ -1544,42 +1538,117 @@ function syncFromText(){
 const stateRegex = /_\{\((?:s|l|g|aq)\)\}$/;
 
 function setupMathField(){
-  mathField.setOptions({virtualKeyboardMode:'off',inlineShortcuts:{},overrideDefaultInlineShortcuts:true});
+  mathField.setOptions({
+    virtualKeyboardMode:'off',
+    inlineShortcuts:{},
+    overrideDefaultInlineShortcuts:true,
+    mathModeSpace: '\\:'
+  });
   mathField.addEventListener('input', syncFromMath);
   textArea.addEventListener('input', syncFromText);
 
   mathField.addEventListener('keydown', (e)=>{
-    // Do not hijack normal typing after arrows; only handle space-to-\\: mapping
-    // when not immediately after a control sequence or arrow.
-    if(e.key === ' '){
-      const val = mathField.getValue('latex') || '';
-      // If we're in the middle of a control sequence like \\rightarrow or just typed \\xrightarrow{...},
-      // allow a normal space so typing doesn't freeze.
-      if(/\\\\[A-Za-z]+$/.test(val) || /\\\\x(?:left|right)arrow\s*\{[^}]*\}$/.test(val)){
-        return; // let space pass through
-      }
+    // Keep typing inside superscripts/subscripts until explicitly exited
+    if(e.key === '^'){
       e.preventDefault();
-      insertText(' \\: ');
+      insertText('^{\\placeholder{}}');
       return;
     }
-    if(e.key !== 'Backspace') return;
-    const latex = mathField.getValue('latex') || '';
-    if(stateRegex.test(latex)){
+    if(e.key === '_'){
       e.preventDefault();
-      mathField.setValue(latex.replace(stateRegex, ''));
-      syncFromMath();
+      insertText('_{\\placeholder{}}');
+      return;
+    }
+    
+    const latex = mathField.getValue('latex') || '';
+    
+    // Auto-advance to superscript after completing numeric subscript
+    // When typing a letter after _{digits}, insert ^{} first
+    if(/^[A-Za-z]$/.test(e.key)){
+      // Check if we're right after a numeric subscript: ..._{digits}|
+      const match = latex.match(/_{(\d+)}$/);
+      if(match){
+        e.preventDefault();
+        mathField.insert(`^{\\placeholder{}}${e.key}`);
+        return;
+      }
+    }
+    
+    if(e.key !== 'Backspace' && e.key !== 'Delete') return;
+    
+    // Get cursor position
+    const position = mathField.offsetOf(mathField.model.at(mathField.model.position));
+    
+    if(e.key === 'Backspace'){
+      // Check if there's a state pattern before the cursor
+      const beforeCursor = latex.substring(0, position);
+      // Match states like _{(s)}, _{(l)}, _{(g)}, _{(aq)}
+      const stateMatch = beforeCursor.match(/_\{\\?\(?(?:s|l|g|aq)\)?\}$/);
+      if(stateMatch){
+        e.preventDefault();
+        const newLatex = beforeCursor.substring(0, beforeCursor.length - stateMatch[0].length) + latex.substring(position);
+        mathField.setValue(newLatex);
+        // Set cursor position after deletion
+        mathField.executeCommand(['performWithFeedback', 'moveToMathFieldEnd']);
+        mathField.executeCommand(['performWithFeedback', 'moveToPreviousChar']);
+        for(let i = 0; i < (latex.substring(position).length); i++){
+          mathField.executeCommand(['performWithFeedback', 'moveToPreviousChar']);
+        }
+        syncFromMath();
+        return;
+      }
+    }
+    
+    if(e.key === 'Delete'){
+      // Check if there's a state pattern after the cursor
+      const afterCursor = latex.substring(position);
+      // Match states like _{(s)}, _{(l)}, _{(g)}, _{(aq)}
+      const stateMatch = afterCursor.match(/^_\{\\?\(?(?:s|l|g|aq)\)?\}/);
+      if(stateMatch){
+        e.preventDefault();
+        const newLatex = latex.substring(0, position) + afterCursor.substring(stateMatch[0].length);
+        mathField.setValue(newLatex);
+        // Restore cursor position
+        mathField.executeCommand(['performWithFeedback', 'moveToMathFieldStart']);
+        for(let i = 0; i < position; i++){
+          mathField.executeCommand(['performWithFeedback', 'moveToNextChar']);
+        }
+        syncFromMath();
+        return;
+      }
     }
   });
 
   textArea.addEventListener('keydown', (e)=>{
-    if(e.key !== 'Backspace') return;
+    if(e.key !== 'Backspace' && e.key !== 'Delete') return;
     const v = textArea.value || '';
-    if(stateRegex.test(v)){
-      e.preventDefault();
-      const result = v.replace(stateRegex, '');
-      textArea.value = result;
-      textArea.setSelectionRange(result.length, result.length);
-      syncFromText();
+    const cursorPos = textArea.selectionStart;
+    
+    if(e.key === 'Backspace'){
+      // Check if there's a state pattern before the cursor
+      const beforeCursor = v.substring(0, cursorPos);
+      const stateMatch = beforeCursor.match(/_\{\\?\(?(?:s|l|g|aq)\)?\}$/);
+      if(stateMatch){
+        e.preventDefault();
+        const result = beforeCursor.substring(0, beforeCursor.length - stateMatch[0].length) + v.substring(cursorPos);
+        textArea.value = result;
+        const newPos = cursorPos - stateMatch[0].length;
+        textArea.setSelectionRange(newPos, newPos);
+        syncFromText();
+      }
+    }
+    
+    if(e.key === 'Delete'){
+      // Check if there's a state pattern after the cursor
+      const afterCursor = v.substring(cursorPos);
+      const stateMatch = afterCursor.match(/^_\{\\?\(?(?:s|l|g|aq)\)?\}/);
+      if(stateMatch){
+        e.preventDefault();
+        const result = v.substring(0, cursorPos) + afterCursor.substring(stateMatch[0].length);
+        textArea.value = result;
+        textArea.setSelectionRange(cursorPos, cursorPos);
+        syncFromText();
+      }
     }
   });
 
@@ -1587,83 +1656,9 @@ function setupMathField(){
   syncFromMath();
 }
 
-// Fixed regex to match the actual state format
-function stripState(text){
-  const match = text.match(/^(.*)_\{\((?:s|l|g|aq)\)\}$/);
-  return match ? match[1] : text;
-}
-
-function findSpeciesStart(latex, position){
-  let i = position - 1;
-  while(i >= 0 && /\s/.test(latex[i])) i--;
-  let start = i + 1;
-  const isBoundary = (ch, prev) => {
-    if(!ch) return true;
-    if(/[\s+=><]/.test(ch)) return true; // minus is special-cased below
-    if(ch === '·' || ch === '\\') return true;
-    if(ch === '-' && prev !== '^') return true;
-    return false;
-  };
-  function scanBalanced(close, open){
-    let depth = 0, k = i;
-    for(; k >= 0; k--){
-      const c = latex[k];
-      if(c === close) depth++;
-      else if(c === open){
-        depth--;
-        if(depth === 0) break;
-      }
-    }
-    return k;
-  }
-  while(i >= 0){
-    const c = latex[i], prev = latex[i-1];
-    if(c === '}'){
-      const k = scanBalanced('}', '{');
-      if(k < 0) break;
-      start = k; i = k - 1;
-      if(latex[i] === '^' || latex[i] === '_'){ start = i; i--; continue; }
-      continue;
-    }
-    if(c === ')'){
-      const k = scanBalanced(')', '(');
-      if(k < 0) break;
-      start = k; i = k - 1; continue;
-    }
-    if(/[a-z]/.test(c)){
-      let k = i; while(k >= 0 && /[a-z]/.test(latex[k])) k--;
-      if(k >= 0 && /[A-Z]/.test(latex[k])){ start = k; i = k - 1; continue; }
-      start = k + 1; i = k; continue;
-    }
-    if(/[A-Z]/.test(c)){ start = i; i--; continue; }
-    if(/[0-9]/.test(c)){
-      let k = i; while(k >= 0 && /[0-9]/.test(latex[k])) k--;
-      const before = latex[k];
-      if(before && /[a-zA-Z)}]/.test(before)){ start = k + 1; i = k; continue; }
-      break;
-    }
-    if(isBoundary(c, prev)) break;
-    start = i; i--;
-  }
-  return Math.max(0, start);
-}
-
-function applyStateToText(latex, position, state){
-  const left = stripState(latex.slice(0, position));
-  const right = latex.slice(position);
-  const base = left + right;
-  const newPos = left.length;
-  const start = findSpeciesStart(base, newPos);
-  const species = base.slice(start, newPos);
-  const result = base.slice(0, start) + '{' + species + '}_{(' + state + ')}' + base.slice(newPos);
-  return { result, position: (base.slice(0, start) + '{' + species + '}_{(' + state + ')}').length };
-}
-
 function applyState(state){
-  let latex = mathField.getValue('latex') || '';
-  const position = latex.length;
-  const { result } = applyStateToText(latex, position, state);
-  mathField.setValue(result);
+  // 简单插入状态占位符
+  mathField.insert(`_{(\\text{${state}})}`);
   syncFromMath();
 }
 
@@ -1672,11 +1667,13 @@ function insertText(text){ mathField.insert(text); syncFromMath(); }
 const chemKeys = [
   { display: '\\rightarrow', insert: ' \\rightarrow ' },
   { display: '\\rightleftharpoons', insert: ' \\rightleftharpoons ' },
-  { display: '\\xrightarrow{\\placeholder{}}', insert: ' \\xrightarrow{\\placeholder{}} ' },
-  { display: '(s)', action: () => applyState('s') },
-  { display: '(l)', action: () => applyState('l') },
-  { display: '(g)', action: () => applyState('g') },
-  { display: '(aq)', action: () => applyState('aq') },
+  { display: '\\xrightarrow{\\placeholder{}}', insert: ' \\xrightarrow{\\placeholder{}\\!} ' },
+  { display: '{\\placeholder{}}_{(s)}', insert: '{\\placeholder{}\\!}_{(s)}' },
+  { display: '{\\placeholder{}}_{(l)}', insert: '{\\placeholder{}\\!}_{(l)}' },
+  { display: '{\\placeholder{}}_{(g)}', insert: '{\\placeholder{}\\!}_{(g)}' },
+  { display: '{\\placeholder{}}_{(aq)}', insert: '{\\placeholder{}\\!}_{(aq)}' },
+  { display: '{{\\placeholder{}}^{\\placeholder{}}}_{(aq)}', insert: '{{\\placeholder{}\\!}^{\\placeholder{}}}_{(aq)}' },
+  { display: '{\\placeholder{}}^{\\placeholder{}}', insert: '{\\placeholder{}\\!}^{\\placeholder{}}' },
   { display: '\\xrightarrow{\\Delta}', insert: ' \\xrightarrow{\\Delta} ' },
   { display: '^{\\placeholder{}}_{\\placeholder{}}\\placeholder{}', insert: '^{\\placeholder{}}_{\\placeholder{}}\\placeholder{}' },
   { display: '\\alpha', insert: '\\alpha' },
@@ -1737,7 +1734,9 @@ function buildKeys(){
 })();
 
 document.getElementById('copyLatex').addEventListener('click', () => {
-  copyToClipboard(textArea.value, 'LaTeX');
+  // Remove \! from copied LaTeX
+  const cleanLatex = textArea.value.replace(/\\!/g, '');
+  copyToClipboard(cleanLatex, 'LaTeX');
 });
 
 document.getElementById('copyWordBtn').addEventListener('click', () => {
@@ -1745,7 +1744,9 @@ document.getElementById('copyWordBtn').addEventListener('click', () => {
 });
 
 document.getElementById('headerCopyLatex').addEventListener('click', () => {
-  copyToClipboard(textArea.value, 'LaTeX');
+  // Remove \! from copied LaTeX
+  const cleanLatex = textArea.value.replace(/\\!/g, '');
+  copyToClipboard(cleanLatex, 'LaTeX');
 });
 
 document.getElementById('headerCopyWord').addEventListener('click', () => {
