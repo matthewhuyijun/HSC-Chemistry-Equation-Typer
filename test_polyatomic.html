@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test Polyatomic Ion Conversion</title>
+<style>
+body { font-family: monospace; padding: 20px; }
+.test { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+.pass { background: #d4edda; }
+.fail { background: #f8d7da; }
+</style>
+</head>
+<body>
+<h1>Polyatomic Ion Conversion Test</h1>
+
+<div id="results"></div>
+
+<script>
+function testConversion(input) {
+  let val = input;
+  
+  const polyatomicIons = {
+    'NH4': 'NH_{4}',
+    'SO4': 'SO_{4}',
+    'SO3': 'SO_{3}',
+    'NO3': 'NO_{3}',
+    'NO2': 'NO_{2}',
+    'CO3': 'CO_{3}',
+    'PO4': 'PO_{4}',
+    'ClO3': 'ClO_{3}',
+    'ClO4': 'ClO_{4}',
+    'MnO4': 'MnO_{4}',
+    'CrO4': 'CrO_{4}',
+    'Cr2O7': 'Cr_{2}O_{7}',
+    'OH': 'OH',
+    'CN': 'CN',
+    'HCO3': 'HCO_{3}',
+    'HSO4': 'HSO_{4}',
+    'H2PO4': 'H_{2}PO_{4}',
+    'HPO4': 'HPO_{4}',
+    'C2H3O2': 'C_{2}H_{3}O_{2}',
+    'CH3COO': 'CH_{3}COO'
+  };
+  
+  // Replace polyatomic ions with proper LaTeX subscript formatting
+  for (let [ion, formatted] of Object.entries(polyatomicIons)) {
+    // Skip if already formatted (avoid double conversion)
+    if (val.includes(formatted)) {
+      continue;
+    }
+    
+    const escapedIon = ion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    // Replace with parentheses first
+    val = val.replace(
+      new RegExp(`\\(${escapedIon}\\)`, 'g'),
+      `(${formatted})`
+    );
+    
+    // Replace without parentheses, avoiding already formatted text
+    val = val.replace(
+      new RegExp(`(?<![A-Za-z_{])${escapedIon}(?![A-Za-z}_])`, 'g'),
+      formatted
+    );
+  }
+  
+  return val;
+}
+
+const tests = [
+  { input: 'NH4', expected: 'NH_{4}', desc: 'Plain NH4' },
+  { input: '(NH4)', expected: '(NH_{4})', desc: 'NH4 in parentheses' },
+  { input: 'NH4Cl', expected: 'NH_{4}Cl', desc: 'NH4Cl compound' },
+  { input: '(NH4)2SO4', expected: '(NH_{4})_{2}SO_{4}', desc: 'Ammonium sulfate' },
+  { input: 'H2SO4', expected: 'H_{2}SO_{4}', desc: 'Sulfuric acid' },
+  { input: 'Ca(OH)2', expected: 'Ca(OH)_{2}', desc: 'Calcium hydroxide' },
+  { input: 'NH_{4}', expected: 'NH_{4}', desc: 'Already formatted NH4 (should not double-convert)' }
+];
+
+const resultsDiv = document.getElementById('results');
+
+tests.forEach(test => {
+  const result = testConversion(test.input);
+  const pass = result === test.expected;
+  
+  const div = document.createElement('div');
+  div.className = 'test ' + (pass ? 'pass' : 'fail');
+  div.innerHTML = `
+    <strong>${test.desc}</strong><br>
+    Input: <code>${test.input}</code><br>
+    Expected: <code>${test.expected}</code><br>
+    Got: <code>${result}</code><br>
+    ${pass ? '✅ PASS' : '❌ FAIL'}
+  `;
+  resultsDiv.appendChild(div);
+});
+</script>
+</body>
+</html>
+

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>测试多原子离子转换修复</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-case { 
+            margin: 15px 0; 
+            padding: 10px; 
+            border: 1px solid #ddd;
+            background: #f9f9f9;
+        }
+        .input { color: #0066cc; font-weight: bold; }
+        .output { color: #009900; font-family: monospace; }
+        .expected { color: #666; font-style: italic; }
+        h1 { color: #333; }
+        h2 { color: #666; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 多原子离子转换测试</h1>
+    <p>测试即使多原子离子前面有元素符号，也能正确转换</p>
+
+    <div id="results"></div>
+
+    <script src="script.js"></script>
+    <script>
+        const testCases = [
+            {
+                name: "碳酸铜 (CuCO3)",
+                input: "CuCO3",
+                expected: "CuCO_{3}"
+            },
+            {
+                name: "碳酸钙 (CaCO3)",
+                input: "CaCO3",
+                expected: "CaCO_{3}"
+            },
+            {
+                name: "硫酸铜 (CuSO4)",
+                input: "CuSO4",
+                expected: "CuSO_{4}"
+            },
+            {
+                name: "氯化铵 (NH4Cl)",
+                input: "NH4Cl",
+                expected: "NH_{4}Cl"
+            },
+            {
+                name: "硝酸钠 (NaNO3)",
+                input: "NaNO3",
+                expected: "NaNO_{3}"
+            },
+            {
+                name: "磷酸钙 (Ca3(PO4)2)",
+                input: "Ca3(PO4)2",
+                expected: "Ca3(PO_{4})2"
+            },
+            {
+                name: "单独的碳酸根 (CO3)",
+                input: "CO3",
+                expected: "CO_{3}"
+            },
+            {
+                name: "已经格式化的 (CO_{3})",
+                input: "CO_{3}",
+                expected: "CO_{3}" // 不应重复转换
+            },
+            {
+                name: "高锰酸钾 (KMnO4)",
+                input: "KMnO4",
+                expected: "KMnO_{4}"
+            },
+            {
+                name: "铬酸钾 (K2CrO4)",
+                input: "K2CrO4",
+                expected: "K2CrO_{4}"
+            }
+        ];
+
+        const resultsDiv = document.getElementById('results');
+        
+        testCases.forEach((test, index) => {
+            const output = convertPolyatomicIons(test.input);
+            const passed = output === test.expected;
+            
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test-case';
+            testDiv.innerHTML = `
+                <strong>测试 ${index + 1}: ${test.name}</strong><br>
+                <span class="input">输入:</span> ${test.input}<br>
+                <span class="output">输出:</span> ${output}<br>
+                <span class="expected">期望:</span> ${test.expected}<br>
+                <strong style="color: ${passed ? 'green' : 'red'}">
+                    ${passed ? '✓ 通过' : '✗ 失败'}
+                </strong>
+            `;
+            
+            resultsDiv.appendChild(testDiv);
+        });
+
+        // 统计结果
+        const passed = testCases.filter((test, i) => 
+            convertPolyatomicIons(test.input) === test.expected
+        ).length;
+        
+        const summary = document.createElement('h2');
+        summary.innerHTML = `测试结果: ${passed}/${testCases.length} 通过`;
+        summary.style.color = passed === testCases.length ? 'green' : 'orange';
+        resultsDiv.insertBefore(summary, resultsDiv.firstChild);
+    </script>
+</body>
+</html>
